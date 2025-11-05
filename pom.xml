@@ -35,7 +35,7 @@
   <repositories>
     <repository>
       <id>github</id>
-      <url>https://maven.pkg.github.com/PQCA/cbomkit-lib</url>
+      <url>https://maven.pkg.github.com/cbomkit/cbomkit-lib</url>
     </repository>
   </repositories>
 

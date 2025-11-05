@@ -23,7 +23,7 @@ on:
 
 env:
   REGISTRY: "ghcr.io"
-  ORG: "PQCA"
+  ORG: "cbomkit"
   IMAGE_NAME: "cbomkit-frontend"
 
 jobs:
