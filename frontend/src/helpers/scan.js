@@ -184,7 +184,7 @@ function setCodeOrigin(gitBranch, gitSubfolder) {
       model.codeOrigin.scanUrl = model.codeOrigin.scanUrl
           .replace(/^scm:git:git:\/\//, "")
           .replace(/.git$/, "");
-      if (!model.codeOrigin.scanUrl.contain("://")) {
+      if (!model.codeOrigin.scanUrl.includes("://")) {
         model.codeOrigin.scanUrl = "https://" + model.codeOrigin.scanUrl;
       }
     }
