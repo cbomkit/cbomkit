@@ -19,6 +19,10 @@ regulator:
     tag: latest
 postgresql:
   fullnameOverride: cbomkit-postgres
+  postgresql:
+  image:
+    repository: bitnamilegacy/postgresql
+    tag: 16.6.0
   auth:
     username: ""
     password: ""
