@@ -117,15 +117,18 @@ public final class GitService {
                     // and try to find a tag that ends with this version
                     // (separated by . or _)
                     final String version = extractVersion(revision.value());
-                    final String alternative = version.replaceAll("\\.", "_");
-                    ref =
-                            refs.stream()
-                                    .filter(
-                                            r ->
-                                                    r.getName().endsWith(version)
-                                                            || r.getName().endsWith(alternative))
-                                    .findFirst()
-                                    .orElse(null);
+                    if (version != null) {
+                        final String alternative = version.replaceAll("\\.", "_");
+                        ref =
+                                refs.stream()
+                                        .filter(
+                                                r ->
+                                                        r.getName().endsWith(version)
+                                                                || r.getName()
+                                                                        .endsWith(alternative))
+                                        .findFirst()
+                                        .orElse(null);
+                    }
                 }
                 if (ref == null) {
                     throw new GitCloneFailed("Revision not found: " + revision.value());
