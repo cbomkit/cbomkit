@@ -110,7 +110,7 @@ public final class GitService {
                 }
             } else {
                 final List<Ref> refs =
-                        clonedRepo.getRepository().getAllRefs().values().stream().toList();
+                        clonedRepo.getRepository().getRefDatabase().getRefs();
                 // Try to find a tag matching the exact revision string first ...
                 Ref ref = clonedRepo.getRepository().findRef(revision.value());
                 if (ref == null) {
