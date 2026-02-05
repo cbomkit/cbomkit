@@ -20,10 +20,10 @@
 package com.ibm.domain.scanning.events;
 
 import app.bootstrap.core.ddd.DomainEvent;
-import com.ibm.domain.scanning.Language;
 import com.ibm.domain.scanning.ScanAggregate;
 import com.ibm.domain.scanning.ScanId;
 import jakarta.annotation.Nonnull;
+import org.pqca.scanning.Language;
 
 public final class LanguageScanDoneEvent extends DomainEvent {
     @Nonnull private final Language language;

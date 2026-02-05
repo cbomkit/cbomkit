@@ -21,6 +21,7 @@ package com.ibm.domain.scanning;
 
 import jakarta.annotation.Nonnull;
 import org.pqca.scanning.CBOM;
+import org.pqca.scanning.Language;
 
 public record LanguageScan(
         @Nonnull Language language, @Nonnull ScanMetadata scanMetadata, @Nonnull CBOM cbom) {}

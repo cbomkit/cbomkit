@@ -19,7 +19,6 @@
  */
 package com.ibm.architecture;
 
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
@@ -43,7 +42,8 @@ class DomainTest {
         "jakarta.annotation..",
         "jakarta.inject..",
         "org.cyclonedx.model..",
-        "com.github.packageurl.." // to not replicate packageUrl object
+        "com.github.packageurl..", // to not replicate packageUrl object
+        "org.pqca.scanning.."
     };
 
     private static final String[] cbomAndCryptographicAssetDomainClasses = {
@@ -61,19 +61,13 @@ class DomainTest {
         "javax..",
         "app.bootstrap.core.ddd..",
         "jakarta.annotation..",
-        "com.github.packageurl.." // to not replicate packageUrl object
+        "com.github.packageurl..", // to not replicate packageUrl object
+        "org.pqca.scanning.."
     };
 
     @ArchTest
     static final ArchRule defaultDomainIsolation =
-            classes()
-                    .should()
-                    .onlyDependOnClassesThat(
-                            resideInAnyPackage(allowedDomainClasses)
-                                    .or(assignableTo(CBOM.class))
-                                    .or(assignableTo(CryptographicAsset.class))
-                                    .or(assignableTo(ScanAggregate.class))
-                                    .or(assignableTo(ScanUrl.class)));
+            classes().should().onlyDependOnClassesThat(resideInAnyPackage(allowedDomainClasses));
 
     @ArchTest
     static final ArchRule cbomAndCryptographicAssetDomainIsolation =

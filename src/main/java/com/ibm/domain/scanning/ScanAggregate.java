@@ -48,6 +48,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.pqca.scanning.Language;
 
 public final class ScanAggregate extends AggregateRoot<ScanId> {
     @Nullable private GitUrl gitUrl;

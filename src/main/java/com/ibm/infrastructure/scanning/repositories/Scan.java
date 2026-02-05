@@ -23,7 +23,6 @@ import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
 import com.ibm.domain.scanning.Commit;
 import com.ibm.domain.scanning.GitUrl;
-import com.ibm.domain.scanning.Language;
 import com.ibm.domain.scanning.LanguageScan;
 import com.ibm.domain.scanning.Revision;
 import com.ibm.domain.scanning.ScanAggregate;
@@ -49,6 +48,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.pqca.errors.CBOMSerializationFailed;
 import org.pqca.scanning.CBOM;
+import org.pqca.scanning.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

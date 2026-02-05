@@ -20,10 +20,10 @@
 package com.ibm.domain.scanning.errors;
 
 import app.bootstrap.core.ddd.DomainException;
-import com.ibm.domain.scanning.Language;
 import com.ibm.domain.scanning.ScanId;
 import jakarta.annotation.Nonnull;
 import java.util.Map;
+import org.pqca.scanning.Language;
 
 public class ScanResultForLanguageAlreadyExists extends DomainException {
     public ScanResultForLanguageAlreadyExists(@Nonnull ScanId scanId, @Nonnull Language language) {

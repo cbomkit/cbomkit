@@ -26,7 +26,6 @@ import app.bootstrap.core.ddd.IRepository;
 import com.github.packageurl.PackageURL;
 import com.ibm.domain.scanning.Commit;
 import com.ibm.domain.scanning.GitUrl;
-import com.ibm.domain.scanning.Language;
 import com.ibm.domain.scanning.LanguageScan;
 import com.ibm.domain.scanning.ScanAggregate;
 import com.ibm.domain.scanning.ScanId;
@@ -59,20 +58,26 @@ import jakarta.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.pqca.errors.CBOMSerializationFailed;
 import org.pqca.errors.ClientDisconnected;
+import org.pqca.indexing.IndexingService;
 import org.pqca.indexing.ProjectModule;
+import org.pqca.indexing.go.GoIndexService;
 import org.pqca.indexing.java.JavaIndexService;
 import org.pqca.indexing.python.PythonIndexService;
 import org.pqca.progress.IProgressDispatcher;
 import org.pqca.progress.ProgressMessage;
 import org.pqca.progress.ProgressMessageType;
 import org.pqca.scanning.CBOM;
+import org.pqca.scanning.Language;
 import org.pqca.scanning.ScanResultDTO;
+import org.pqca.scanning.ScannerService;
+import org.pqca.scanning.go.GoScannerService;
 import org.pqca.scanning.java.JavaScannerService;
 import org.pqca.scanning.python.PythonScannerService;
 
@@ -287,18 +292,27 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
             final File projectDir =
                     Optional.ofNullable(this.projectDirectory)
                             .orElseThrow(GitCloneResultNotAvailable::new);
+
+            // set up scanners
+            final Map<Language, IndexingService> indexers = new HashMap<>();
             // java
-            final JavaIndexService javaIndexService =
-                    new JavaIndexService(this.progressDispatcher, projectDir);
-            final List<ProjectModule> javaIndex =
-                    javaIndexService.index(scanAggregate.getPackageFolder().orElse(null));
-            this.index.put(Language.JAVA, javaIndex);
+            indexers.put(Language.JAVA, new JavaIndexService(this.progressDispatcher, projectDir));
             // python
-            final PythonIndexService pythonIndexService =
-                    new PythonIndexService(this.progressDispatcher, projectDir);
-            final List<ProjectModule> pythonIndex =
-                    pythonIndexService.index(scanAggregate.getPackageFolder().orElse(null));
-            this.index.put(Language.PYTHON, pythonIndex);
+            indexers.put(
+                    Language.PYTHON, new PythonIndexService(this.progressDispatcher, projectDir));
+            // go
+            indexers.put(Language.GO, new GoIndexService(this.progressDispatcher, projectDir));
+
+            // run indexers
+            for (Language language : Language.values()) {
+                if (!indexers.containsKey(language)) continue;
+
+                final IndexingService indexer = indexers.get(language);
+                final List<ProjectModule> languageIndex =
+                        indexer.index(scanAggregate.getPackageFolder().orElse(null));
+                this.index.put(language, languageIndex);
+            }
+
             // continue with scan
             this.commandBus.send(new ScanCommand(command.id()));
         } catch (Exception e) {
@@ -333,86 +347,75 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
                             .orElseThrow(() -> new NoGitUrlSpecifiedForScan(scanId));
             final Commit commit = scanAggregate.getCommit().orElseThrow(NoCommitProvided::new);
             Optional.of(this.index).filter(m -> !m.isEmpty()).orElseThrow(NoIndexForProject::new);
+            Optional.ofNullable(this.projectDirectory).orElseThrow(NoProjectDirectoryProvided::new);
 
-            // progress scan statistics
-            final long startTime = System.currentTimeMillis();
-            int numberOfScannedLine;
-            int numberOfScannedFiles;
+            // set up scanners
+            final Map<Language, ScannerService> scanners = new HashMap<>();
 
             // java
             final JavaScannerService javaScannerService =
-                    new JavaScannerService(
-                            this.progressDispatcher,
-                            Optional.ofNullable(this.projectDirectory)
-                                    .orElseThrow(NoProjectDirectoryProvided::new));
+                    new JavaScannerService(this.progressDispatcher, this.projectDirectory);
             javaScannerService.setRequireBuild(false);
             javaScannerService.addJavaDependencyJar(this.javaJarsDirPath);
 
-            final ScanResultDTO javaScanResultDTO =
-                    javaScannerService.scan(this.index.get(Language.JAVA));
-            // update statistics
-            numberOfScannedLine = javaScanResultDTO.numberOfScannedLines();
-            numberOfScannedFiles = javaScanResultDTO.numberOfScannedFiles();
-
-            if (javaScanResultDTO.cbom() != null) {
-                // add metadata
-                javaScanResultDTO
-                        .cbom()
-                        .addMetadata(
-                                gitUrl.value(),
-                                scanAggregate.getRevision().value(),
-                                commit.hash(),
-                                scanAggregate.getPackageFolder().map(Path::toString).orElse(null));
-                // update statistics
-                scanAggregate.reportScanResults(
-                        new LanguageScan(
-                                Language.JAVA,
-                                new ScanMetadata(
-                                        javaScanResultDTO.startTime(),
-                                        javaScanResultDTO.endTime(),
-                                        javaScanResultDTO.numberOfScannedLines(),
-                                        javaScanResultDTO.numberOfScannedFiles()),
-                                javaScanResultDTO.cbom()));
-            }
-            CBOM consolidatedCBOM = javaScanResultDTO.cbom();
+            scanners.put(Language.JAVA, javaScannerService);
 
             // python
             final PythonScannerService pythonScannerService =
-                    new PythonScannerService(
-                            this.progressDispatcher,
-                            Optional.ofNullable(this.projectDirectory)
-                                    .orElseThrow(NoProjectDirectoryProvided::new));
-            final ScanResultDTO pythonScanResultDTO =
-                    pythonScannerService.scan(this.index.get(Language.PYTHON));
-            // update statistics
-            numberOfScannedLine += pythonScanResultDTO.numberOfScannedLines();
-            numberOfScannedFiles += pythonScanResultDTO.numberOfScannedFiles();
+                    new PythonScannerService(this.progressDispatcher, this.projectDirectory);
+            scanners.put(Language.PYTHON, pythonScannerService);
 
-            if (pythonScanResultDTO.cbom() != null) {
-                // add metadata
-                pythonScanResultDTO
-                        .cbom()
-                        .addMetadata(
-                                gitUrl.value(),
-                                scanAggregate.getRevision().value(),
-                                commit.hash(),
-                                scanAggregate.getPackageFolder().map(Path::toString).orElse(null));
+            // go
+            final GoScannerService goScannerService =
+                    new GoScannerService(this.progressDispatcher, this.projectDirectory);
+            scanners.put(Language.GO, goScannerService);
+
+            // aggregated scan result
+            CBOM consolidatedCBOM = null;
+            // progress scan statistics
+            final long startTime = System.currentTimeMillis();
+            int numberOfScannedLine = 0;
+            int numberOfScannedFiles = 0;
+
+            // run scanners
+            for (Language language : Language.values()) {
+                if (!scanners.containsKey(language)) continue;
+
+                final ScannerService scanner = scanners.get(language);
+                final ScanResultDTO scanResultDTO = scanner.scan(this.index.get(language));
 
                 // update statistics
-                scanAggregate.reportScanResults(
-                        new LanguageScan(
-                                Language.PYTHON,
-                                new ScanMetadata(
-                                        pythonScanResultDTO.startTime(),
-                                        pythonScanResultDTO.endTime(),
-                                        pythonScanResultDTO.numberOfScannedLines(),
-                                        pythonScanResultDTO.numberOfScannedFiles()),
-                                pythonScanResultDTO.cbom()));
+                numberOfScannedLine += scanResultDTO.numberOfScannedLines();
+                numberOfScannedFiles += scanResultDTO.numberOfScannedFiles();
 
-                if (consolidatedCBOM != null) {
-                    consolidatedCBOM.merge(pythonScanResultDTO.cbom());
-                } else {
-                    consolidatedCBOM = pythonScanResultDTO.cbom();
+                if (scanResultDTO.cbom() != null) {
+                    // add metadata
+                    scanResultDTO
+                            .cbom()
+                            .addMetadata(
+                                    gitUrl.value(),
+                                    scanAggregate.getRevision().value(),
+                                    commit.hash(),
+                                    scanAggregate
+                                            .getPackageFolder()
+                                            .map(Path::toString)
+                                            .orElse(null));
+                    // update statistics
+                    scanAggregate.reportScanResults(
+                            new LanguageScan(
+                                    language,
+                                    new ScanMetadata(
+                                            scanResultDTO.startTime(),
+                                            scanResultDTO.endTime(),
+                                            scanResultDTO.numberOfScannedLines(),
+                                            scanResultDTO.numberOfScannedFiles()),
+                                    scanResultDTO.cbom()));
+
+                    if (consolidatedCBOM != null) {
+                        consolidatedCBOM.merge(scanResultDTO.cbom());
+                    } else {
+                        consolidatedCBOM = scanResultDTO.cbom();
+                    }
                 }
             }
 

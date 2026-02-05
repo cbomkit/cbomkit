@@ -20,7 +20,6 @@
 package com.ibm.infrastructure.scanning.repositories;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ibm.domain.scanning.Language;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.annotation.Nonnull;
 import jakarta.persistence.Cacheable;
@@ -28,6 +27,7 @@ import jakarta.persistence.Entity;
 import java.sql.Timestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.pqca.scanning.Language;
 
 @Entity
 @Cacheable

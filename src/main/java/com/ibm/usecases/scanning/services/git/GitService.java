@@ -109,8 +109,7 @@ public final class GitService {
                                     + revision.value());
                 }
             } else {
-                final List<Ref> refs =
-                        clonedRepo.getRepository().getRefDatabase().getRefs();
+                final List<Ref> refs = clonedRepo.getRepository().getRefDatabase().getRefs();
                 // Try to find a tag matching the exact revision string first ...
                 Ref ref = clonedRepo.getRepository().findRef(revision.value());
                 if (ref == null) {
