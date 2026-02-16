@@ -194,7 +194,6 @@ public final class ScanAggregate extends AggregateRoot<ScanId> {
     }
 
     @Nullable public CBOM getConsolidatedCBOM() {
-    public CBOM getConsolidatedCBOM() {
         return this.getLanguageScans().orElseGet(List::of).stream()
                 .map(LanguageScan::cbom)
                 .reduce(
