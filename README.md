@@ -91,7 +91,7 @@ The API server functions as the central component of the CBOMkit, offering a com
 *Sample Query to Retrieve CBOM project identifier*
 ```shell
 curl --request GET \
-  --url 'http://localhost:8081/api/v1/cbom/github.com%2Fkeycloak%2Fkeycloak'
+  --url 'http://localhost:8081/api/v1/cbom/pkg:github%2Fkeycloak%2Fkeycloak@<commit_hash>'
 ```
 
 In addition to the RESTful API, the server incorporates WebSocket integration, enabling:
