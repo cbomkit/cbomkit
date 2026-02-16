@@ -73,7 +73,6 @@ import org.pqca.indexing.python.PythonIndexService;
 import org.pqca.progress.IProgressDispatcher;
 import org.pqca.progress.ProgressMessage;
 import org.pqca.progress.ProgressMessageType;
-import org.pqca.scanning.CBOM;
 import org.pqca.scanning.Language;
 import org.pqca.scanning.ScanResultDTO;
 import org.pqca.scanning.ScannerService;
@@ -370,8 +369,6 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
                     new GoScannerService(this.progressDispatcher, this.projectDirectory);
             scanners.put(Language.GO, goScannerService);
 
-            // aggregated scan result
-            CBOM consolidatedCBOM = null;
             // progress scan statistics
             final long startTime = System.currentTimeMillis();
             int numberOfScannedLine = 0;
@@ -410,12 +407,6 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
                                             scanResultDTO.numberOfScannedLines(),
                                             scanResultDTO.numberOfScannedFiles()),
                                     scanResultDTO.cbom()));
-
-                    if (consolidatedCBOM != null) {
-                        consolidatedCBOM.merge(scanResultDTO.cbom());
-                    } else {
-                        consolidatedCBOM = scanResultDTO.cbom();
-                    }
                 }
             }
 
@@ -438,7 +429,7 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
             this.progressDispatcher.send(
                     new ProgressMessage(
                             ProgressMessageType.CBOM,
-                            Optional.ofNullable(consolidatedCBOM)
+                            Optional.ofNullable(scanAggregate.getConsolidatedCBOM())
                                     .orElseThrow(CBOMSerializationFailed::new)
                                     .toJSON()
                                     .toString()));
