@@ -48,6 +48,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.pqca.scanning.CBOM;
 import org.pqca.scanning.Language;
 
 public final class ScanAggregate extends AggregateRoot<ScanId> {
@@ -190,6 +191,18 @@ public final class ScanAggregate extends AggregateRoot<ScanId> {
     @Nonnull
     public Optional<Path> getPackageFolder() {
         return Optional.ofNullable(packageFolder);
+    }
+
+    @Nullable
+    public CBOM getConsolidatedCBOM() {
+        return this.getLanguageScans().orElseGet(List::of).stream()
+                .map(LanguageScan::cbom)
+                .reduce(
+                        (a, b) -> {
+                            a.merge(b);
+                            return a;
+                        })
+                .orElse(null);
     }
 
     @Nonnull
