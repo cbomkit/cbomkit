@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - name: "IBM Research Europe–Zurich"
+title: "CBOMkit"
+version: 2.2.2
+date-released: 2026-02-05
+url: "https://github.com/cbomkit/cbomkit"
