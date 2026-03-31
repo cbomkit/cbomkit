@@ -40,10 +40,6 @@ spec:
                   name: {{ .Values.backend.name }}-secret
             - name: CBOMKIT_FRONTEND_URL_CORS
               value: "https://{{ .Values.frontend.name }}-{{ .Release.Namespace }}.{{ .Values.common.clusterDomain }}"
-            {{ if .Values.regulator.enabled }}
-            - name: CBOMKIT_REGULATOR_API_BASE
-              value: "https://{{ .Values.regulator.name }}-{{ .Release.Namespace }}.{{ .Values.common.clusterDomain }}"
-            {{ end }}
           image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
           imagePullPolicy: Always
           volumeMounts:
