@@ -8,12 +8,7 @@ frontend:
   name: cbomkit-frontend
   image: ghcr.io/cbomkit/cbomkit-frontend
   tag: latest
-regulator:
-  enabled: false
-  name: cbomkit-regulator
-  image: ""
-  tag: ""
-  opa:
+opa:
     name: cbomkit-opa
     image: openpolicyagent/opa
     tag: latest
@@ -22,7 +17,7 @@ postgresql:
   postgresql:
   image:
     repository: bitnamilegacy/postgresql
-    tag: 16.6.0
+    tag: 17.6.0-debian-12-r4
   auth:
     username: ""
     password: ""

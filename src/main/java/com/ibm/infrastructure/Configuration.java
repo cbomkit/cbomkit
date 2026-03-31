@@ -22,19 +22,45 @@ package com.ibm.infrastructure;
 import com.ibm.infrastructure.compliance.IComplianceConfiguration;
 import com.ibm.infrastructure.compliance.service.BasicQuantumSafeComplianceService;
 import com.ibm.infrastructure.compliance.service.IComplianceService;
+import com.ibm.infrastructure.compliance.service.opa.OPAComplianceService;
 import com.ibm.infrastructure.scanning.IScanConfiguration;
 import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
+import java.util.Optional;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public final class Configuration implements IScanConfiguration, IComplianceConfiguration {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Configuration.class);
+
+    private static IComplianceService complianceService = null;
+
     @Nonnull
     @Override
     public IComplianceService getComplianceService() {
-        return new BasicQuantumSafeComplianceService();
+        if (complianceService != null) {
+            return complianceService;
+        }
+
+        Optional<String> opaApiBase =
+                ConfigProvider.getConfig()
+                        .getOptionalValue("cbomkit.ext-policies.opa-api-base", String.class);
+        if (opaApiBase.isPresent()) {
+            try {
+                complianceService = new OPAComplianceService();
+                return complianceService;
+            } catch (Exception e) {
+                LOGGER.warn(
+                        "Failed to connect to external compliance service: Open Policy Agent '{}'",
+                        opaApiBase.get());
+            }
+        }
+        complianceService = new BasicQuantumSafeComplianceService();
+        return complianceService;
     }
 
     @Nonnull

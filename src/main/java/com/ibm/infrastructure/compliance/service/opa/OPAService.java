@@ -17,25 +17,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ibm.infrastructure.compliance.service;
+package com.ibm.infrastructure.compliance.service.opa;
 
-import com.ibm.domain.compliance.PolicyIdentifier;
-import com.ibm.infrastructure.compliance.ComplianceLevel;
-import jakarta.annotation.Nonnull;
-import java.util.List;
-import org.pqca.scanning.CBOM;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-public interface IComplianceService {
-    @Nonnull
-    String getName();
+@RegisterRestClient
+public interface OPAService {
+    static final String PACKAGE = "policies";
 
-    @Nonnull
-    List<ComplianceLevel> getComplianceLevels();
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/v1/data/" + PACKAGE + "/{policyName}")
+    OPAResponse evaluate(@PathParam("policyName") String policyName, String cbomString);
 
-    @Nonnull
-    ComplianceLevel getDefaultComplianceLevel();
-
-    @Nonnull
-    ComplianceCheckResultDTO evaluate(
-            @Nonnull PolicyIdentifier policyIdentifier, @Nonnull CBOM cbom);
+    @GET
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/health")
+    String checkHealth();
 }

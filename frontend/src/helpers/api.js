@@ -1,5 +1,5 @@
 import { model, ErrorStatus } from "@/model.js";
-import { API_LAST_CBOM_URL, API_CHECK_POLICY } from "@/app.config";
+import { API_LAST_CBOM_URL, API_CHECK_POLICY, API_CHECK_POLICY_NAME } from "@/app.config";
 import { checkValidComplianceResults, createLocalComplianceReport, isViewerOnly } from "@/helpers.js";
 
 
@@ -27,7 +27,7 @@ function getLocalComplianceReport(cbom) {
   }
 }
 
-function getRemoteComplianceReport(cbom, policyIdentifier = 'quantum_safe') {
+function getRemoteComplianceReport(cbom, policyIdentifier = API_CHECK_POLICY_NAME) {
   const apiUrl = `${API_CHECK_POLICY}?policyIdentifier=${policyIdentifier}`;
 
   // Create the request options
@@ -58,7 +58,7 @@ function getRemoteComplianceReport(cbom, policyIdentifier = 'quantum_safe') {
     });
 }
 
-export function getComplianceReport(cbom, policyIdentifier = 'quantum_safe') {
+export function getComplianceReport(cbom, policyIdentifier = API_CHECK_POLICY_NAME) {
   if (isViewerOnly()) {
     getLocalComplianceReport(cbom)
   } else {

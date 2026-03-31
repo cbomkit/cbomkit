@@ -114,6 +114,68 @@ The compliance framework is designed with extensibility in mind, providing a sol
  - Enhancing existing verification processes 
  - Integrating custom compliance checks (external)
 
+#### External Compliance Evaluation
+
+CBOMkit supports the use of [Open Policy Agent (OPA)](https://www.openpolicyagent.org) as an external compliance evaluation service. OPA evaluates compliance based on user-defined policies written in its declarative policy language, [Rego](https://www.openpolicyagent.org/docs/policy-language).
+
+In CBOMkit, you can configure OPA as an external compliance compliance service using either:
+- the environment variable `CBOMKIT_OPA_API_BASE`, or
+- the configuration key `cbomkit.ext-policies.opa-api-base` in [application.properties](src/main/resources/application.properties).
+
+If either option is specified, it must contain the base URL of a running OPA instance. If the variable or property is unset, or if CBOMkit cannot connect to OPA, the system automatically falls back to its built-in internal compliance service.
+
+The internal compliance service implements a fixed “quantum-safe policy.” This built-in policy checks the quantum safety of asymmetric algorithms using whitelists of algorithm OIDs and names.
+
+##### Policy Definition in OPA
+
+CBOMkit provides a sample Rego policy, [quantum_safe.rego](opa/quantum_safe.rego), which replicates the behavior of the internal compliance service.
+A Rego policy file begins with a package declaration and defines one or more rules. All CBOMkit policies must start with:
+
+```rego
+package policies
+```
+
+Each rule includes:
+- A header,
+= A conditional expression (the logic), and
+- A JSON object to be returned when the condition is satisfied.
+
+For compliance evaluation, OPA executes these rules on the set of CBOM components.
+By convention, a rule header should follow this format:
+
+```rego
+<policy_name>.findings contains finding if ...
+```
+
+The <policy_name> identifies the policy being evaluated. It must match the policy name configured in the CBOMkit front end through the environment variable VUE_APP_POLICY_NAME.
+By default, this is "quantum_safe", the predefined policy included in quantum_safe.rego.
+
+When running CBOMkit as a Docker application via `make ext-compliance` (see below), the OPA container is automatically configured with this default policy file.
+
+###### Findings Format
+Each policy must produce a JSON list named `findings`, which CBOMkit expects in OPA’s evaluation response.
+Every finding object must contain at least these three attributes:
+
+```rego
+{
+  "bom-ref": "string",         # The UUID of the matching component (usually component["bom-ref"])
+  "result": "string",          # One of ["quantum-safe", "quantum-vulnerable", "na", "unknown"]
+  "rule": "string",            # The name of the rule
+  "property": "string",        # Optional: the relevant CBOM property name
+  "value": "string" or numeric # Optional: the property’s value
+}
+```
+
+If any mandatory attribute of a finding is missing, the evaluation will fail, and CBOMkit will revert to its internal compliance service. The result value conveys the rule’s outcome. `NA` indicates that the rule does not apply to a certain component (for example, symmetric algorithms in the predefined "quantum_safe" policy). "property" and "value" are optional and used when rendering compliance details in the CBOMkit interface.
+
+###### Evaluation Results
+A compliance policy acts as a knowledge base defining what is compliant or non-compliant. If a component does not match any rule, no finding is produced; CBOMkit then marks the component as "unknown".
+
+The overall compliance status is considered not quantum-safe if any component is marked "quantum-vulnerable." Conversely, if no "quantum-vulnerable" components are found, or if no rule matches and hence no findings are generated, the CBOM is assumed to be quantum-safe.
+
+> [!NOTE]
+> This same “quantum-safe” result will also occur for a non-empty CBOM if OPA cannot locate the specified policy or if no policy is configured at all.
+
 #### Configuration
 
 Different deployment configurations utilize distinct sources for compliance verification.
