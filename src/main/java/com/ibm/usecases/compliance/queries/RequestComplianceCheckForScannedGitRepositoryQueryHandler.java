@@ -21,7 +21,6 @@ package com.ibm.usecases.compliance.queries;
 
 import app.bootstrap.core.cqrs.IQueryBus;
 import app.bootstrap.core.cqrs.QueryHandler;
-import com.ibm.domain.compliance.CryptographicAsset;
 import com.ibm.domain.compliance.PolicyIdentifier;
 import com.ibm.infrastructure.compliance.ComplianceFinding;
 import com.ibm.infrastructure.compliance.ComplianceResult;
@@ -34,7 +33,7 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.Nonnull;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Singleton;
-import java.util.Collection;
+import org.pqca.scanning.CBOM;
 
 @Singleton
 public final class RequestComplianceCheckForScannedGitRepositoryQueryHandler
@@ -63,7 +62,7 @@ public final class RequestComplianceCheckForScannedGitRepositoryQueryHandler
             throws Exception {
         final CompliancePreparationService compliancePreparationService =
                 new CompliancePreparationService();
-        final Collection<CryptographicAsset> cryptographicAssets =
+        final CBOM cbom =
                 compliancePreparationService.receiveCryptographicAssets(
                         this.readRepository,
                         requestComplianceCheckForScannedGitRepositoryQuery.projectIdentifier());
@@ -72,7 +71,7 @@ public final class RequestComplianceCheckForScannedGitRepositoryQueryHandler
                 new PolicyIdentifier(
                         requestComplianceCheckForScannedGitRepositoryQuery.policyIdentifier());
         final ComplianceCheckResultDTO complianceCheckResultDTO =
-                this.complianceService.evaluate(policyIdentifier, cryptographicAssets);
+                this.complianceService.evaluate(policyIdentifier, cbom);
 
         if (complianceCheckResultDTO.error()) {
             return ComplianceResult.error(this.complianceService.getName());

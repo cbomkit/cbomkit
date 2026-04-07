@@ -19,18 +19,13 @@
  */
 package com.ibm.usecases.compliance.service;
 
-import com.ibm.domain.compliance.CryptographicAsset;
 import com.ibm.infrastructure.database.readmodels.CBOMReadModel;
 import com.ibm.infrastructure.database.readmodels.ICBOMReadRepository;
 import com.ibm.usecases.compliance.errors.CouldNotFindCBOMForGitRepository;
 import com.ibm.usecases.compliance.errors.ErrorWhileParsingStringToCBOM;
 import jakarta.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 import org.cyclonedx.exception.ParseException;
-import org.cyclonedx.model.Bom;
 import org.cyclonedx.parsers.BomParserFactory;
 import org.cyclonedx.parsers.Parser;
 import org.pqca.errors.CBOMSerializationFailed;
@@ -38,7 +33,7 @@ import org.pqca.scanning.CBOM;
 
 public final class CompliancePreparationService {
 
-    public Collection<CryptographicAsset> receiveCryptographicAssets(
+    public CBOM receiveCryptographicAssets(
             @Nonnull ICBOMReadRepository readRepository, @Nonnull String projectIdentifier)
             throws CBOMSerializationFailed, CouldNotFindCBOMForGitRepository {
         final CBOMReadModel cbomReadModel =
@@ -46,23 +41,17 @@ public final class CompliancePreparationService {
                         .findBy(projectIdentifier)
                         .orElseThrow(() -> new CouldNotFindCBOMForGitRepository(projectIdentifier));
 
-        final CBOM cbom = CBOM.formJSON(cbomReadModel.getBom());
-        return Optional.ofNullable(cbom.cycloneDXbom().getComponents()).orElseGet(List::of).stream()
-                .map(component -> new CryptographicAsset(component.getBomRef(), component))
-                .toList();
+        return CBOM.formJSON(cbomReadModel.getBom());
     }
 
-    public Collection<CryptographicAsset> transformCBOMString(@Nonnull String cbomString)
+    public CBOM transformCBOMString(@Nonnull String cbomString)
             throws ErrorWhileParsingStringToCBOM {
         try {
             byte[] cbomBytes = cbomString.getBytes(StandardCharsets.UTF_8);
             // Create the parser
             Parser parser = BomParserFactory.createParser(cbomBytes);
             // Parse the BOM content
-            Bom cycloneDXbom = parser.parse(cbomBytes);
-            return Optional.ofNullable(cycloneDXbom.getComponents()).orElseGet(List::of).stream()
-                    .map(component -> new CryptographicAsset(component.getBomRef(), component))
-                    .toList();
+            return new CBOM(parser.parse(cbomBytes));
         } catch (ParseException e) {
             throw new ErrorWhileParsingStringToCBOM(e);
         }

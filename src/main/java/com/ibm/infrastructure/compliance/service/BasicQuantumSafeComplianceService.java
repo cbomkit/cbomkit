@@ -25,15 +25,21 @@ import com.ibm.infrastructure.compliance.ComplianceLevel;
 import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.cyclonedx.model.component.crypto.AlgorithmProperties;
 import org.cyclonedx.model.component.crypto.CryptoProperties;
 import org.cyclonedx.model.component.crypto.enums.Primitive;
+import org.pqca.scanning.CBOM;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BasicQuantumSafeComplianceService implements IComplianceService {
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(BasicQuantumSafeComplianceService.class);
+
     private static final List<Primitive> ASYMMETRIC_PRIMITIVES =
             Arrays.asList(Primitive.SIGNATURE, Primitive.KEY_AGREE, Primitive.KEM, Primitive.PKE);
     private static final List<Primitive> UNKNOWN_PRIMITIVES =
@@ -80,6 +86,8 @@ public class BasicQuantumSafeComplianceService implements IComplianceService {
     @Nonnull private final Map<Integer, ComplianceLevel> complianceLevels;
 
     public BasicQuantumSafeComplianceService() {
+        LOGGER.info("Using internal basic compliance service");
+
         complianceLevels = new HashMap<>();
         complianceLevels.put(
                 1,
@@ -136,11 +144,17 @@ public class BasicQuantumSafeComplianceService implements IComplianceService {
 
     @Override
     public @Nonnull ComplianceCheckResultDTO evaluate(
-            @Nonnull PolicyIdentifier policyIdentifier,
-            @Nonnull Collection<CryptographicAsset> cryptographicAssets) {
+            @Nonnull PolicyIdentifier policyIdentifier, @Nonnull CBOM cbom) {
         if (!policyIdentifier.id().equals("quantum_safe")) {
             return new ComplianceCheckResultDTO(List.of(), true);
         }
+        List<CryptographicAsset> cryptographicAssets =
+                Optional.ofNullable(cbom.cycloneDXbom().getComponents())
+                        .orElseGet(List::of)
+                        .stream()
+                        .map(component -> new CryptographicAsset(component.getBomRef(), component))
+                        .toList();
+
         return new ComplianceCheckResultDTO(
                 cryptographicAssets.stream().map(this::evaluate).toList(), false);
     }

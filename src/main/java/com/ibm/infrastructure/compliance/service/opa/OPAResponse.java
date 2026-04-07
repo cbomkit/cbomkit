@@ -17,25 +17,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ibm.infrastructure.compliance.service;
+package com.ibm.infrastructure.compliance.service.opa;
 
-import com.ibm.domain.compliance.PolicyIdentifier;
-import com.ibm.infrastructure.compliance.ComplianceLevel;
-import jakarta.annotation.Nonnull;
 import java.util.List;
-import org.pqca.scanning.CBOM;
+import java.util.Map;
 
-public interface IComplianceService {
-    @Nonnull
-    String getName();
+public final class OPAResponse {
+    private Map<String, List<OPAFinding>> result;
 
-    @Nonnull
-    List<ComplianceLevel> getComplianceLevels();
+    private OPAResponse() {}
 
-    @Nonnull
-    ComplianceLevel getDefaultComplianceLevel();
+    public Map<String, List<OPAFinding>> getResult() {
+        return result;
+    }
 
-    @Nonnull
-    ComplianceCheckResultDTO evaluate(
-            @Nonnull PolicyIdentifier policyIdentifier, @Nonnull CBOM cbom);
+    public boolean noFindings() {
+        return result == null || result.isEmpty() || result.values().isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        return "OpaResponse{" + result + '}';
+    }
 }
