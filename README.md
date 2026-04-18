@@ -16,32 +16,34 @@ CBOMkit is a toolset for dealing with Cryptography Bill of Materials (CBOM). CBO
 
 ## Quickstart
 
+First, clone the repository and navigate to the project directory:
+
+```shell
+git clone [https://github.com/cbomkit/cbomkit](https://github.com/cbomkit/cbomkit)
+cd cbomkit
+```
+
+### Deployment Options
+
+**Option 1: Docker Compose**
+
 Starting the CBOMkit using `docker-compose`.
 ```shell
-# clone the repository 
-git clone https://github.com/cbomkit/cbomkit
-cd cbomkit
 # run the make command to start the docker compose 
 make production
 ```
 
-Alternatively, if you wish to use podman instead of docker, run the following:
+**Option-2: Podman**
+
+If you prefer Podman, ensure podman-compose is installed (`pip3 install podman-compose`), then run:
 ```shell
 # run the make command to start the docker compose using podman
 make production ENGINE=podman
 ```
 
-(This requires podman-compose to have been installed via `pip3 install podman-compose`).
+**Option 3: Kubernetes (Helm)**
 
-Next steps:
-- Enter a git url like [https://github.com/keycloak/keycloak](https://github.com/keycloak/keycloak) or a package url (PURL) like `pkg:maven/io.quarkus/quarkus-core@3.18.1` to generate a CBOM
-- View your generated CBOM by selecting your previously scanned CBOM
-- Drag and drop CBOM from the [examples](example) into the dropbox to view it
-
-> [!NOTE]
-> By default, the service can be accessed at http://localhost:8001
-
-Deploy using the helm chart to a kubernetes environment. Pass the domain suffix and the cbomkit database creds via helm parameters.
+Deploy to a cluster by providing your domain and database credentials. This command automatically fetches the latest release tags:
 ```shell
 # clone the repository 
 git clone https://github.com/cbomkit/cbomkit
@@ -55,6 +57,16 @@ helm install cbomkit \
   --set frontend.tag=$(curl -s https://api.github.com/repos/cbomkit/cbomkit/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') \
   ./chart
 ```
+
+Next steps:
+- Access UI in the browser using http://localhost:8001/
+- Enter a git url like [https://github.com/keycloak/keycloak](https://github.com/keycloak/keycloak) or a package url (PURL) like `pkg:maven/io.quarkus/quarkus-core@3.18.1` to generate a CBOM
+- View your generated CBOM by selecting your previously scanned CBOM
+- Drag and drop CBOM from the [examples](example) into the dropbox to view it
+
+Default service endpoints:
+* UI can be accessed at http://localhost:8001/
+* API can be accessed at http://localhost:8081/api
 
 ## Architecture
 
@@ -224,13 +236,22 @@ While the CBOMkit's scanning capabilities are currently bound to the Sonar Crypt
 design of this plugin allows for potential expansion to support additional languages and cryptographic libraries in 
 future updates.
 
-## Contribution Guidelines
+## Contributing to CBOMkit
 
-If you'd like to contribute to CBOMkit, please take a look at our
-[contribution guidelines](CONTRIBUTING.md). By participating, you are expected to uphold our [code of conduct](CODE_OF_CONDUCT.md).
+We welcome contributions—simply fork the CBOMkit repository, and then make a [pull
+request](https://help.github.com/articles/about-pull-requests/) containing your contribution.
 
-We use [GitHub issues](https://github.com/cbomkit/cbomkit/issues) for tracking requests and bugs. For questions
-start a discussion using [GitHub Discussions](https://github.com/cbomkit/cbomkit/discussions).
+See our [contributions guidelines](CONTRIBUTING.md) for more details.
+
+## Support
+
+- **Source Code:** https://github.com/cbomkit/cbomkit
+- **Issue Tracker:** https://github.com/cbomkit/cbomkit/issues
+
+If you are having issues, please let us know by posting the issue on our GitHub issue tracker.
+
+Note that we are committed to providing a friendly, safe, and welcoming environment for all.
+Please read and respect the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
