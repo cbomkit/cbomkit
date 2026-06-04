@@ -160,6 +160,10 @@ public final class GitService {
                 if (commitHash == null) {
                     throw new GitCloneFailed("Commit not found for revision " + revision.value());
                 }
+                // Checkout the resolved commit so the working tree reflects the requested
+                // revision. Without this the repo stays on the default branch and scanners
+                // would analyse the wrong revision (issue #339).
+                clonedRepo.checkout().setName(commitHash.name()).call();
                 try (ObjectReader reader = clonedRepo.getRepository().newObjectReader()) {
                     commit = new Commit(reader.abbreviate(commitHash, 7).name());
                 }
