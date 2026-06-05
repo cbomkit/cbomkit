@@ -63,11 +63,7 @@ class GitServiceRevisionCheckoutTest {
                 commitAFullHash = commitA.name();
 
                 // lightweight tag on commit A
-                source.tag()
-                        .setName("v1.0.0")
-                        .setObjectId(commitA)
-                        .setAnnotated(false)
-                        .call();
+                source.tag().setName("v1.0.0").setObjectId(commitA).setAnnotated(false).call();
 
                 new File(sourceDir, "file-b.txt").createNewFile();
                 source.add().addFilepattern("file-b.txt").call();
@@ -81,7 +77,8 @@ class GitServiceRevisionCheckoutTest {
             // Clone using the tag revision only — no commit hash supplied.
             // This is the path taken for Maven PURLs (e.g. guava@33.0.0-jre).
             GitService gitService = new GitService(baseCloneDir.getAbsolutePath(), null);
-            GitUrl gitUrl = new GitUrl(sourceDir.toURI().toString());
+            GitUrl gitUrl =
+        new GitUrl("file://" + sourceDir.getAbsolutePath());
             CloneResultDTO result = gitService.clone(gitUrl, new Revision("v1.0.0"), null);
 
             try {
