@@ -74,17 +74,6 @@ jobs:
       - name: Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@v5
         if: github.event_name != 'pull_request'
-      - name: Create CBOM
-        uses: cbomkit/cbomkit-action@v2.1.2
-        id: cbom
-          # Persist CBOM after a job has completed and share
-          # that CBOM with another job in the same workflow.
-      - name: Commit changes to new branch
-        uses: actions/upload-artifact@v4
-        with:
-          name: "CBOM"
-          path: ${{ steps.cbom.outputs.pattern }}
-          if-no-files-found: warn
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -117,3 +106,16 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+        # Runs last: the action is a root Docker action that leaves scratch
+        # directories in the workspace, which must not end up in a build context.
+      - name: Create CBOM
+        uses: cbomkit/cbomkit-action@v2.1.2
+        id: cbom
+          # Persist CBOM after a job has completed and share
+          # that CBOM with another job in the same workflow.
+      - name: Commit changes to new branch
+        uses: actions/upload-artifact@v4
+        with:
+          name: "CBOM"
+          path: ${{ steps.cbom.outputs.pattern }}
+          if-no-files-found: warn

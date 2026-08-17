@@ -1,0 +1,7 @@
+# Dockerfile.jvm only needs the Quarkus build output and the BouncyCastle jars
+# used to resolve Java crypto symbols. Everything else is excluded so the build
+# context stays small and so unrelated files in the workspace (e.g. scratch
+# directories left behind by earlier workflow steps) can never break the build.
+**
+!target/quarkus-app/**
+!src/main/resources/java/scan/*.jar
