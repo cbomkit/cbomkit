@@ -109,7 +109,7 @@ jobs:
         # Runs last: the action is a root Docker action that leaves scratch
         # directories in the workspace, which must not end up in a build context.
       - name: Create CBOM
-        uses: cbomkit/cbomkit-action@v2.1.2
+        uses: cbomkit/cbomkit-action@v2.2.0
         id: cbom
           # Persist CBOM after a job has completed and share
           # that CBOM with another job in the same workflow.
