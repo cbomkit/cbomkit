@@ -33,7 +33,7 @@
     <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
     <google-java-format.version>1.28.0</google-java-format.version>
 
-    <app-bootstrap-core.version>0.2.16</app-bootstrap-core.version>
+    <app-bootstrap-core.version>1.2.0</app-bootstrap-core.version>
     <cbomkit-lib.version>1.1.0</cbomkit-lib.version>
     <jgit.version>7.3.0.202506031305-r</jgit.version>
     <httpclient5.version>5.5</httpclient5.version>
