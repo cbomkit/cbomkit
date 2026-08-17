@@ -81,12 +81,24 @@ quarkus dev
 
 #### Start the frontend
 
+The frontend is a Vue 3 + Vite + TypeScript app under `frontend/`. The Vite dev server runs on `:8002` and proxies `/api` and `/v1/scan` to the Quarkus backend on `:8081`. The dev proxy also rewrites the `Origin` header to `http://localhost:8001` so the backend's CORS allowlist (set in `docker-compose.yaml` via `CBOMKIT_FRONTEND_URL_CORS`) accepts the request unchanged.
+
 ```shell
-# change to the frontend directory 
 cd frontend/
-# use vue cli to start the frontend in dev mode
-vue-cli-service serve --port 8001
+npm install
+npm run dev
 ```
+
+Other useful scripts:
+
+```shell
+npm run type-check     # strict vue-tsc
+npm test               # Vitest smoke suite
+npm run build          # production build (output in frontend/dist/)
+npm run lint           # ESLint flat config + Prettier
+```
+
+The `Makefile` exposes `make dev-frontend-local` as a shortcut that installs and starts the Vite dev server.
 
 ### PURLs
 

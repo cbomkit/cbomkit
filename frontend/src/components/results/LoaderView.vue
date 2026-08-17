@@ -1,31 +1,44 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useScanStore } from '@/stores/scan'
+import { ScanState } from '@/types/scan'
+
+const scan = useScanStore()
+
+type CdsState = 'inactive' | 'active' | 'finished' | 'error'
+
+const cdsState = computed<CdsState>(() => {
+  switch (scan.scanningStatus) {
+    case ScanState.LOADED:
+      return 'finished'
+    case ScanState.ERROR:
+      return 'error'
+    case ScanState.LOADING:
+    case ScanState.ENDING:
+      return 'active'
+    default:
+      return 'inactive'
+  }
+})
+
+const text = computed(() => {
+  if (scan.scanningStatus === ScanState.LOADED) return 'Scan finished'
+  if (scan.scanningStatus === ScanState.ERROR) return scan.scanningStatusMessage ?? 'Scan failed'
+  return scan.scanningStatusMessage ?? 'Scanning…'
+})
+</script>
+
 <template>
-  <div>
-    <!-- TODO: add a progress bar? -->
-    <!-- <progress-bar></progress-bar> -->
-    <cv-inline-loading
-      v-if="model.scanning.scanningStatus != null"
-      ending-text="Scan ended"
-      :error-text="model.scanning.scanningStatusMessage"
-      :loading-text="model.scanning.scanningStatusMessage"
-      loaded-text="Scan finished"
-      :state="model.scanning.scanningStatus"
-    ></cv-inline-loading>
+  <div v-if="scan.scanningStatus" class="loader">
+    <cds-inline-loading :status="cdsState">{{ text }}</cds-inline-loading>
   </div>
 </template>
 
-<script>
-import { model } from "@/model.js";
-// import ProgressBar from 'vue-simple-progress' // https://github.com/dzwillia/vue-simple-progress
-
-export default {
-  name: "LoaderView",
-  components: {
-    // ProgressBar
-  },
-  data() {
-    return {
-      model,
-    };
-  },
-};
-</script>
+<style scoped>
+.loader {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+}
+</style>

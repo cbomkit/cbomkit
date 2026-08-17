@@ -33,19 +33,32 @@ import org.slf4j.LoggerFactory;
 
 public enum OPAResult {
     @JsonProperty
+    DISTRUSTED("distrusted"),
+    @JsonProperty
     QUANTUMM_SAFE("quantum-safe"),
     @JsonProperty
     QUANTUM_VULNERABLE("quantum-vulnerable"),
     @JsonProperty
     NA("na"),
     @JsonProperty
-    UNKNOWN("unknown");
+    UNKNOWN("unknown"),
+    @JsonProperty
+    TRUSTED("trusted");
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OPAResult.class);
 
     @Nonnull
     private static final Map<OPAResult, ComplianceLevel> complianceLevels =
             Map.of(
+                    OPAResult.DISTRUSTED,
+                    new ComplianceLevel(
+                            0,
+                            "Distrusted CA",
+                            "Certificate issuer matches a known-distrusted or malicious"
+                                    + " Certificate Authority",
+                            "#da1e28",
+                            ComplianceLevel.ComplianceIcon.ERROR,
+                            true),
                     OPAResult.QUANTUM_VULNERABLE,
                     new ComplianceLevel(
                             1,
@@ -77,6 +90,14 @@ public enum OPAResult {
                             "Not Applicable: we only categorize asymmetric algorithms",
                             "gray",
                             ComplianceLevel.ComplianceIcon.NOT_APPLICABLE,
+                            false),
+                    OPAResult.TRUSTED,
+                    new ComplianceLevel(
+                            5,
+                            "Trusted CA",
+                            "Certificate issuer is not on the distrusted list",
+                            "green",
+                            ComplianceLevel.ComplianceIcon.CHECKMARK,
                             false));
 
     public static List<ComplianceLevel> getComplianceLevels() {

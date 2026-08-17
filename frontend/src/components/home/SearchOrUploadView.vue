@@ -1,107 +1,105 @@
-<template>
-    <div>
-        <div class="list-table">
-            <div class="icon-and-title-container">
-              <Catalog24/>
-              <div class="large-title">
-                Explore previously scanned CBOMs
-              </div>
-            </div>
-            <ListTable />
-        </div>
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { isViewerOnly } from '@/config'
+import SearchBar from './SearchBar.vue'
+import FileUploader from './FileUploader.vue'
+import ListTable from './ListTable.vue'
+import CarbonIcon from '@/components/CarbonIcon.vue'
 
-        <div style="display: flex;">
-          <cv-tile kind="standard" style="margin-right: 1.5%; flex: 7">
-            <div class="card-container">
-              <div class="icon-and-title-container">
-                <AddAlt24/>
-                <div class="title">
-                  Generate a new CBOM
-                </div>
-              </div>
-              <p class="body-text">
-                Submit a new public Git repository to scan and generate a CBOM.
-              </p>
-              <SearchBar/>
-            </div>
-          </cv-tile>
+import AddAlt24 from '@carbon/icons/es/add--alt/24.js'
+import Script24 from '@carbon/icons/es/script/24.js'
+import Catalog24 from '@carbon/icons/es/catalog/24.js'
 
-          <cv-tile kind="standard" style="margin-left: 1.5%; flex: 4">
-            <div class="card-container">
-              <div class="icon-and-title-container">
-                <Script24/>
-                <div class="title">
-                  Upload a CBOM
-                </div>
-              </div>
-              <p class="body-text">
-                Upload an existing CBOM to visualize it.
-              </p>
-              <FileUploader/>
-            </div>
-          </cv-tile>
-        </div>
-    </div>
-</template>
+const router = useRouter()
 
-<script>
-import { model } from "@/model.js";
-import FileUploader from "@/components/home/FileUploader.vue";
-import SearchBar from "@/components/home/SearchBar.vue";
-import ListTable from "@/components/home/ListTable.vue";
-import { AddAlt24, Script24, Catalog24 } from "@carbon/icons-vue";
-
-
-export default {
-  name: "SearchOrUploadView",
-  components: {
-    SearchBar,
-    ListTable,
-    FileUploader,
-    AddAlt24,
-    Script24,
-    Catalog24
-  },
-  data() {
-    return {
-      model,
-    };
-  },
+function goToResults() {
+  void router.push({ name: 'results' })
 }
 </script>
 
+<template>
+  <div class="search-or-upload">
+    <section v-if="!isViewerOnly()" class="search-or-upload__list">
+      <div class="search-or-upload__icon-title">
+        <CarbonIcon :icon="Catalog24" aria-label="Recent" />
+        <h2>Explore previously scanned CBOMs</h2>
+      </div>
+      <ListTable />
+    </section>
+
+    <div class="search-or-upload__cards">
+      <article v-if="!isViewerOnly()" class="search-or-upload__card search-or-upload__card--wide">
+        <div class="search-or-upload__icon-title">
+          <CarbonIcon :icon="AddAlt24" aria-label="Generate" />
+          <h2>Generate a new CBOM</h2>
+        </div>
+        <p>Submit a public Git URL or PURL to scan and generate a CBOM.</p>
+        <SearchBar />
+      </article>
+
+      <article class="search-or-upload__card">
+        <div class="search-or-upload__icon-title">
+          <CarbonIcon :icon="Script24" aria-label="Upload" />
+          <h2>Upload a CBOM</h2>
+        </div>
+        <p>Upload an existing CBOM to visualize it.</p>
+        <FileUploader @uploaded="goToResults" />
+      </article>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.list-table {
-  padding: 2% 0% 4%;
-  margin: auto;
-}
-.card-container {
-  padding: 8px;
-  height: 100%;
+.search-or-upload {
   display: flex;
   flex-direction: column;
+  gap: 32px;
 }
-.icon-and-title-container {
+
+.search-or-upload__icon-title {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
 }
-.title {
-  font-size: large;
+
+.search-or-upload__icon-title h2 {
+  margin: 0;
+  font-size: 1.125rem;
   font-weight: 500;
-  padding-left: 8px;
+  color: var(--cds-text-primary);
 }
-.large-title {
-  font-size: large;
-  font-weight: 500;
-  padding-left: 8px;
+
+.search-or-upload__icon-title svg {
+  width: 22px;
+  height: 22px;
+  fill: var(--cds-text-primary);
 }
-.small-header {
-  font-size: small;
-  font-weight: 600;
-  margin-bottom: 10px;
+
+.search-or-upload__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
 }
-.body-text {
-  padding-bottom: 16px;
+
+.search-or-upload__card {
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  padding: 20px;
+}
+
+.search-or-upload__card--wide {
+  grid-column: span 1;
+}
+
+@media (min-width: 1024px) {
+  .search-or-upload__cards {
+    grid-template-columns: 7fr 4fr;
+  }
+}
+
+.search-or-upload__card p {
+  margin: 0 0 16px;
+  color: var(--cds-text-secondary);
 }
 </style>

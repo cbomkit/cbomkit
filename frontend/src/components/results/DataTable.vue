@@ -1,467 +1,297 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useCbomStore } from '@/stores/cbom'
+import { getDetections } from '@/lib/cbom'
+import { getComplianceLabel } from '@/lib/compliance'
+import { capitalizeFirstLetter } from '@/lib/general'
+import ComplianceIcon from '@/components/results/ComplianceIcon.vue'
+import type { CbomComponent } from '@/types/cbom'
+import type { DetectionFilter } from '@/types/filter'
+
+const props = defineProps<{ filter: DetectionFilter | null }>()
+const emit = defineEmits<{
+  (event: 'clear-filter'): void
+  (event: 'select-asset', asset: CbomComponent): void
+}>()
+
+const cbomStore = useCbomStore()
+const search = ref('')
+
+const detections = computed<CbomComponent[]>(() => {
+  void cbomStore.cbom
+  void cbomStore.dependencies
+  return getDetections()
+})
+
+function complianceLabelFor(asset: CbomComponent) {
+  return getComplianceLabel(cbomStore.policyCheckResult, asset) ?? '—'
+}
+
+function primitiveFor(asset: CbomComponent) {
+  return asset.cryptoProperties?.algorithmProperties?.primitive ?? '—'
+}
+
+function functionsFor(asset: CbomComponent): string {
+  const fns = asset.cryptoProperties?.algorithmProperties?.cryptoFunctions
+  if (!fns) return '—'
+  return Array.isArray(fns) ? fns.join(', ') : String(fns)
+}
+
+function locationFor(asset: CbomComponent): string {
+  const occurrence = asset.evidence?.occurrences?.[0]
+  if (!occurrence) return '—'
+  if (occurrence.line) return `${occurrence.location}:${occurrence.line}`
+  return occurrence.location
+}
+
+function matchesFilter(asset: CbomComponent): boolean {
+  if (!props.filter || !props.filter.value) return true
+  switch (props.filter.kind) {
+    case 'compliance':
+      return complianceLabelFor(asset) === props.filter.value
+    case 'primitive':
+      return String(primitiveFor(asset)).toLowerCase() === props.filter.value.toLowerCase()
+    case 'function': {
+      const fns = asset.cryptoProperties?.algorithmProperties?.cryptoFunctions ?? []
+      const list = Array.isArray(fns) ? fns : [fns]
+      return list.some((f) => String(f).toLowerCase() === props.filter!.value!.toLowerCase())
+    }
+    case 'name':
+      return (asset.name ?? '') === props.filter.value
+    default:
+      return true
+  }
+}
+
+function matchesSearch(asset: CbomComponent): boolean {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return true
+  return (
+    (asset.name ?? '').toLowerCase().includes(term) ||
+    String(primitiveFor(asset)).toLowerCase().includes(term) ||
+    functionsFor(asset).toLowerCase().includes(term) ||
+    locationFor(asset).toLowerCase().includes(term)
+  )
+}
+
+const rows = computed(() => detections.value.filter((d) => matchesFilter(d) && matchesSearch(d)))
+
+const filterDescription = computed(() => {
+  if (!props.filter || !props.filter.value) return null
+  const kindLabel = capitalizeFirstLetter(props.filter.kind)
+  return `${kindLabel}: ${props.filter.value}`
+})
+</script>
+
 <template>
-  <div class="table">
-    <cv-modal ref="modalInfo">
-      <template slot="label"
-        >{{ getTermFullName(this.assetType) ? getTermFullName(this.assetType) : this.assetType }}</template
-      >
-      <template slot="title"
-        ><h3>
-          {{ assetName.toUpperCase() }}
-        </h3></template
-      >
-      <template slot="content">
-        <CryptoAssetDetails
-          :asset="currentAssetModal"
-          @open-code="openInCode"
-          @open-asset="openAsset"
+  <section class="table-card" aria-label="Detected cryptographic assets">
+    <header class="table-card__header">
+      <div>
+        <h3>Detected assets</h3>
+        <p class="table-card__count">
+          Showing {{ rows.length }} of {{ detections.length }}
+        </p>
+      </div>
+      <div class="table-card__controls">
+        <button
+          v-if="filterDescription"
+          type="button"
+          class="filter-chip"
+          @click="emit('clear-filter')"
+        >
+          <span>{{ filterDescription }}</span>
+          <span aria-hidden="true">×</span>
+        </button>
+        <input
+          v-model="search"
+          type="search"
+          placeholder="Search by name, primitive, function, or location"
+          class="search-input"
+          aria-label="Search detections"
         />
-      </template>
-    </cv-modal>
+      </div>
+    </header>
 
-    <cv-modal ref="modalPrompt" @after-modal-hidden="resetModal">
-      <template slot="label">{{ modalPromptLabel }}</template>
-      <template slot="title">{{ modalPromptTitle }}</template>
-      <template slot="content">
-        <GitInfoPrompt ref="gitInfoPrompt" @confirm-prompt="confirmPrompt"/>
-      </template>
-    </cv-modal>
-
-    <cv-data-table-skeleton
-      v-if="this.detections.length === 0 && model.scanning.isScanning"
-      :columns="columns"
-      :rows="5"
-    >
-      <template slot="actions">
-        <cv-button :icon="downloadIcon" :disabled="true">
-          Download CBOM
-        </cv-button>
-      </template></cv-data-table-skeleton
-    >
-
-    <cv-data-table
-      v-else
-      batch-cancel-label="Cancel"
-      :columns="columns"
-      :sortable="true"
-      @sort="onSort"
-      :pagination="pagination"
-      @pagination="actionOnPagination"
-      :overflow-menu="['Details', { label: 'More' }]"
-    >
-      <template slot="actions">
-        <h5 style="margin-left: 16px; display: flex; align-items: center;" :style="isViewerOnly ? 'margin-right: auto' : ''">
-          List of all assets
-        </h5>
-        <div v-if="!isViewerOnly" style="display: flex; align-items: center; margin-right: auto;">
-          <LoaderView
-            v-if="!model.scanning.isScanning"
-            style="
-              margin-right: auto;
-              margin-left: 26px;
-              display: flex;
-              align-items: center;
-            "
-          />
-          <div
-            v-else
-            style="
-              font-size: small;
-              margin-right: auto;
-              margin-left: 26px;
-              display: flex;
-              align-items: center;
-            "
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col" class="data-table__compliance-col">Status</th>
+            <th scope="col">Name</th>
+            <th scope="col">Primitive</th>
+            <th scope="col">Functions</th>
+            <th scope="col">Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="rows.length === 0" class="data-table__empty">
+            <td colspan="5">No assets match the current filters.</td>
+          </tr>
+          <tr
+            v-for="(row, index) in rows"
+            :key="(row['bom-ref'] ?? '') + '_' + index"
+            class="data-table__row"
+            tabindex="0"
+            role="button"
+            :aria-label="`View details for ${row.name ?? 'asset'}`"
+            @click="emit('select-asset', row)"
+            @keydown.enter.prevent="emit('select-asset', row)"
+            @keydown.space.prevent="emit('select-asset', row)"
           >
-            Scan in progress...
-          </div>
-        </div>
-        <cv-icon-button
-          kind="ghost"
-          @click="showPrompt(false)"
-          :disabled="model.scanning.isScanning"
-          :icon="SettingsAdjust24"
-        ></cv-icon-button>
-        <cv-button
-          v-if="!isViewerOnly"
-          @click="downloadCBOM"
-          :disabled="model.scanning.isScanning"
-          :icon="downloadIcon"
-        >
-          Download CBOM
-        </cv-button>
-      </template>
-      <template slot="data">
-        <cv-data-table-row
-          v-for="(asset, rowIndex) in paginatedDetections"
-          :key="`${rowIndex}`"
-          :value="`${rowIndex}`"
-        >
-          <cv-data-table-cell>
-            <div style="display: flex; align-items: center">
-              <div style="padding-right: 6px; margin-bottom: -2px;">
-                <cv-inline-loading
-                  v-if="isLoadingCompliance"
-                  state="loading"
-                  loadingText=""
-                  style="margin-bottom: 2px;"
-                ></cv-inline-loading>
-                <cv-tooltip
-                  v-else-if="hasValidComplianceResults"
-                  alignment="start"
-                  direction="top"
-                  :tip="getComplianceDescription(asset)"
-                >
-                  <!-- The compliance icon -->
-                  <ComplianceIcon
-                    :asset="asset"
-                    v-if="hasValidComplianceResults"
-                  />
-                  <WatsonHealthImageAvailabilityUnavailable24 v-else/>
-                </cv-tooltip>
-              </div>
-              <div style="padding: 6px; min-width: 130px">
-                <div style="font-weight: 600">
-                  {{ asset.name.toUpperCase() }}
-                </div>
-              </div>
-            </div>
-          </cv-data-table-cell>
-          <cv-data-table-cell>
-            <div style="padding: 6px; min-width: 100px">
-              <div v-if="type(asset) !== ''">
-                {{ getTermFullName(type(asset)) ? getTermFullName(type(asset)) : type(asset) }}
-              </div>
-              <div v-else>
-                <em>Unspecified</em>
-              </div> 
-            </div>
-          </cv-data-table-cell>
-          <cv-data-table-cell>
-            <div style="padding: 6px; min-width: 100px">
-              <div v-if="primitive(asset) !== ''">
-                {{ getTermFullName(primitive(asset)) ? getTermFullName(primitive(asset)) : primitive(asset) }}
-              </div>
-              <div v-else>
-                <em>Unspecified</em>
-              </div> 
-            </div>
-          </cv-data-table-cell>
-          <cv-data-table-cell style="max-width: 200px; width: 30%">
-            <div v-if="occurrences(asset) == null" >
-              <em>No code location found</em>
-            </div>
-            <cv-link
-              v-else
-              @click="openInCodeFor({ index: rowIndex })"
-              style="
-                cursor: pointer;
-                max-width: 100%;
-                text-overflow: ellipsis;
-                overflow: hidden;
-                white-space: nowrap;
-                display: inline-block;
-              "
-            >
-              {{ fileName(occurrences(asset)) }}:{{
-                lineNumber(occurrences(asset))
-              }}
-            </cv-link>
-          </cv-data-table-cell>
-          <cv-data-table-cell>
-            <cv-icon-button
-              :icon="Maximize24"
-              kind="ghost"
-              @click="showDetectionDetailsFor({ index: rowIndex })"
-              style="float: right; margin-right: -8px; margin-left: -8px"
-              label="See details"
-              tip-alignment="end"
-              tip-position="top"
-            >
-            </cv-icon-button>
-          </cv-data-table-cell>
-        </cv-data-table-row>
-      </template>
-    </cv-data-table>
-  </div>
+            <td class="data-table__compliance-cell">
+              <ComplianceIcon :asset="row" />
+              <span class="visually-hidden">{{ complianceLabelFor(row) }}</span>
+            </td>
+            <td>{{ row.name ?? '—' }}</td>
+            <td>{{ capitalizeFirstLetter(String(primitiveFor(row))) }}</td>
+            <td class="data-table__functions">{{ functionsFor(row) }}</td>
+            <td class="data-table__location">{{ locationFor(row) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </template>
 
-<script>
-import {model} from "@/model";
-import {
-  canOpenOnline,
-  capitalizeFirstLetter,
-  getDetections,
-  getTermFullName,
-  getComplianceLevel,
-  openOnline,
-  hasValidComplianceResults,
-  isViewerOnly,
-  isLoadingCompliance,
-  getComplianceDescription,
-  resolvePath
-} from "@/helpers";
-import {
-  Maximize24,
-  SettingsAdjust24,
-  WatsonHealthImageAvailabilityUnavailable24,
-} from "@carbon/icons-vue";
-import CryptoAssetDetails from "@/components/results/modal/CryptoAssetDetails.vue";
-import GitInfoPrompt from "@/components/results/modal/GitInfoPrompt.vue";
-import LoaderView from "@/components/results/LoaderView.vue";
-import ComplianceIcon from "@/components/results/ComplianceIcon.vue"
+<style scoped>
+.table-card {
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  margin-top: 24px;
+}
 
-export default {
-  name: "DataTable",
-  components: {
-    CryptoAssetDetails,
-    GitInfoPrompt,
-    LoaderView,
-    WatsonHealthImageAvailabilityUnavailable24,
-    ComplianceIcon
-  },
-  data: function () {
-    return {
-      model,
-      localFinalListOfAssets: [],
-      Maximize24,
-      currentAssetModal: null,
-      currentPagination: null,
-      openInCodeOnConfirm: false, // If true, the user has clicked on the button to get the prompt. If false, the prompt was shown after the user tried to openInCode.
-      columns: ["Cryptographic asset", "Type", "Primitive", "Location"],
-      downloadIcon: `<svg fill-rule="evenodd" height="16" name="download" role="img" viewBox="0 0 14 16" width="14" aria-label="Download" alt="Download">
-        <title>Download</title>
-        <path d="M7.506 11.03l4.137-4.376.727.687-5.363 5.672-5.367-5.67.726-.687 4.14 4.374V0h1v11.03z"></path>
-        <path d="M13 15v-2h1v2a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-2h1v2h12z"></path>
-        </svg>'`,
-      SettingsAdjust24,
-    };
-  },
-  computed: {
-    isViewerOnly,
-    isLoadingCompliance,
-    hasValidComplianceResults,
-    detections() {
-      if (this.localFinalListOfAssets.length > 0) {
-        // We return the local copy of the list of assets that gets ordered by the DataTable sorting options
-        return this.localFinalListOfAssets;
-      }
-      return getDetections();
-    },
-    paginatedDetections() {
-      if (this.currentPagination == null) {
-        return [];
-      } else {
-        return this.detections.slice(
-          this.currentPagination.start - 1,
-          this.currentPagination.start + this.currentPagination.length - 1
-        );
-      }
-    },
-    pagination() {
-      return {
-        numberOfItems: this.detections.length,
-        pageSizes: [10, 25, 50, 100],
-      };
-    },
-    assetName() {
-      if (
-        this.currentAssetModal === undefined ||
-        this.currentAssetModal === null
-      ) {
-        return "";
-      }
-      if (!Object.hasOwn(this.currentAssetModal, "name")) {
-        return "";
-      }
-      return this.currentAssetModal.name;
-    },
-    assetType() {
-      if (
-        this.currentAssetModal === undefined ||
-        this.currentAssetModal === null
-      ) {
-        return "";
-      }
-      if (!Object.hasOwn(this.currentAssetModal, "cryptoProperties")) {
-        return "";
-      }
-      return this.currentAssetModal.cryptoProperties.assetType;
-    },
-    variant() {
-      if (
-        this.currentAssetModal === undefined ||
-        this.currentAssetModal === null
-      ) {
-        return "";
-      }
-      if (!Object.hasOwn(this.currentAssetModal, "cryptoProperties")) {
-        return "";
-      }
-      if (
-        !Object.hasOwn(
-          this.currentAssetModal.cryptoProperties,
-          "algorithmProperties"
-        )
-      ) {
-        return "";
-      }
-      if (
-        !Object.hasOwn(
-          this.currentAssetModal.cryptoProperties.algorithmProperties,
-          "variant"
-        )
-      ) {
-        return "";
-      }
-      return this.currentAssetModal.cryptoProperties.algorithmProperties
-        .variant;
-    },
-    modalPromptTitle() {
-      if (this.openInCodeOnConfirm) {
-        return "Specify the code origin to open it";
-      } else {
-        return "Specify the code origin";
-      }
-    },
-    modalPromptLabel() {
-      if (this.openInCodeOnConfirm) {
-        return "Incomplete code origin";
-      } else {
-        return "";
-      }
-    },
-  },
-  methods: {
-    getComplianceLevel,
-    getComplianceDescription,
-    getTermFullName,
-    capitalizeFirstLetter,
-    resolvePath,
-    actionOnPagination: function (content) {
-      // console.log(content)
-      this.currentPagination = content;
-    },
-    downloadCBOM: function () {
-      let data = JSON.stringify(model.cbom, null, 2);
-      let filename = "cbom.json";
-      let element = document.createElement("a");
-      element.setAttribute(
-        "href",
-        "data:application/json;charset=utf-8," + encodeURIComponent(data)
-      );
-      element.setAttribute("download", filename);
-      element.style.display = "none";
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    },
-    showDetectionDetailsFor: function (value) {
-      this.currentAssetModal = this.paginatedDetections[value.index];
-      this.$refs.modalInfo.show();
-    },
-    showPrompt: function (openInCodeOnConfirm) {
-      this.openInCodeOnConfirm = openInCodeOnConfirm;
-      this.$refs.modalPrompt.show();
-    },
-    confirmPrompt() {
-      this.$refs.modalPrompt.hide();
-      if (this.openInCodeOnConfirm) {
-        this.openInCode(this.openInCodeOnConfirm);
-      }
-    },
-    resetModal() {
-      this.$refs.gitInfoPrompt.resetModal(); // Call the method in GitInfoPrompt
-    },
-    openInCodeFor: function (value) {
-      this.currentAssetModal = this.paginatedDetections[value.index];
-      this.openInCode(true);
-    },
-    openInCode(openInCodeOnConfirm) {
-      // This method is separated from `openInCodeFor` because it is also called by the details modal through an event
-      if (!canOpenOnline()) {
-        this.showPrompt(openInCodeOnConfirm);
-        return;
-      }
-      openOnline(this.currentAssetModal);
-    },
-    openAsset(asset) {
-      // Close the modal
-      this.$refs.modalInfo.hide();
-      // Wait a bit
-      setTimeout(() => {
-        // Set the new asset
-        this.currentAssetModal = asset;
-        // Show the modal again
-        this.$refs.modalInfo.show();
-      }, 300);
-    },
-    onSort(sortBy) {
-      // Sort by sorting a copy of the detections to not create change in the graph views (that depend on ordering)
-      this.localFinalListOfAssets = getDetections();
-      if (sortBy) {
-        this.localFinalListOfAssets.sort((a, b) => {
-          let itemA, itemB;
-          switch (sortBy.index) {
-            case "0":
-              // Sort by compliance first, then alphabetically
-              itemA = getComplianceLevel(a).toString()
-              itemB = getComplianceLevel(b).toString()
-              itemA += a["name"];
-              itemB += b["name"];
-              break;
-            case "1":
-              itemA = getTermFullName(this.type(a)) ? getTermFullName(this.type(a)) : this.type(a)
-              itemB = getTermFullName(this.type(b)) ? getTermFullName(this.type(b)) : this.type(b)
-              break;
-            case "2":
-            itemA = getTermFullName(this.primitive(a)) ? getTermFullName(this.primitive(a)) : this.primitive(a)
-            itemB = getTermFullName(this.primitive(b)) ? getTermFullName(this.primitive(b)) : this.primitive(b)
-              break;
-            case "3":
-              itemA = this.fileName(this.occurrences(a));
-              itemB = this.fileName(this.occurrences(b));
-              break;
-            default:
-              break;
-          }
-          if (sortBy.order === "descending") {
-            return itemB.localeCompare(itemA);
-          }
-          if (sortBy.order === "ascending") {
-            return itemA.localeCompare(itemB);
-          }
-          return 0;
-        });
-      }
-    },
-    primitive(cryptoAsset) {
-      let res = resolvePath(cryptoAsset, "cryptoProperties.algorithmProperties.primitive");
-      return res ? res.toString() : "";
-    },
-    type(cryptoAsset) {
-      let res = resolvePath(cryptoAsset, "cryptoProperties.assetType");
-      return res ? res.toString() : "";
-    },
-    occurrences(cryptoAsset) {
-      let res = resolvePath(cryptoAsset, "evidence.occurrences");
-      if (res !== 0 && Array.isArray(res) && res.length > 0) {
-        return res[0];
-      }
-      return null;
-    },
-    fileName(detection) {
-      if (detection === undefined || detection === null) {
-        return "";
-      }
-      const filePath = detection.location;
-      return filePath.substring(filePath.lastIndexOf("/") + 1);
-    },
-    lineNumber(detection) {
-      if (detection === undefined || detection === null) {
-        return "";
-      }
-      return detection.line;
-    },
-  },
-};
-</script>
+.table-card__header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.table-card__header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--cds-text-primary);
+}
+
+.table-card__count {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.table-card__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-chip {
+  appearance: none;
+  background: var(--cds-tag-background-blue, #d0e2ff);
+  color: var(--cds-tag-color-blue, #002d9c);
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.filter-chip:hover {
+  filter: brightness(0.95);
+}
+
+.search-input {
+  appearance: none;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-field);
+  color: var(--cds-text-primary);
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  min-width: 260px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  color: var(--cds-text-primary);
+  vertical-align: middle;
+}
+
+.data-table th {
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+  color: var(--cds-text-secondary);
+}
+
+.data-table__compliance-col {
+  width: 64px;
+}
+
+.data-table__compliance-cell {
+  width: 64px;
+}
+
+.data-table__compliance-cell svg {
+  width: 20px;
+  height: 20px;
+}
+
+.data-table__location,
+.data-table__functions {
+  font-family: var(--cds-code-01-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+}
+
+.data-table__row {
+  cursor: pointer;
+}
+
+.data-table__row:hover {
+  background: var(--cds-layer-hover);
+}
+
+.data-table__row:focus-visible {
+  outline: 2px solid var(--cds-focus, #0f62fe);
+  outline-offset: -2px;
+}
+
+.data-table__empty td {
+  text-align: center;
+  font-style: italic;
+  color: var(--cds-text-helper);
+  padding: 28px 20px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+</style>

@@ -1,141 +1,82 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useCbomStore } from '@/stores/cbom'
+import { useScanStore } from '@/stores/scan'
+import { getDetections } from '@/lib/cbom'
+import { limitString } from '@/lib/general'
+
+const cbomStore = useCbomStore()
+const scanStore = useScanStore()
+
+const title = computed(() => {
+  const origin = scanStore.codeOrigin
+  if (origin.projectIdentifier) return origin.projectIdentifier
+  if (origin.scanUrl) return origin.scanUrl.replace(/^https?:\/\//, '')
+  if (origin.uploadedFileName) return `${origin.uploadedFileName} (uploaded)`
+  return 'Unknown CBOM'
+})
+
+const detectionCount = computed(() => {
+  void cbomStore.cbom
+  return getDetections().length
+})
+
+const detectionText = computed(() => {
+  if (scanStore.isScanning && scanStore.liveDetections.length === 0) {
+    return 'Scanning code for cryptographic assets…'
+  }
+  if (scanStore.isScanning && scanStore.liveDetections.length > 0) {
+    return `${scanStore.liveDetections.length} cryptographic assets found…`
+  }
+  if (detectionCount.value === 0) return 'No cryptographic asset has been found.'
+  return `${detectionCount.value} cryptographic ${detectionCount.value === 1 ? 'asset' : 'assets'} found.`
+})
+
+const tags = computed(() => {
+  const origin = scanStore.codeOrigin
+  const out: Array<{ label: string }> = []
+  if (origin.gitUrl) out.push({ label: `gitUrl: ${origin.gitUrl}` })
+  if (origin.revision) out.push({ label: `revision: ${origin.revision}` })
+  if (origin.commitID) out.push({ label: `commit: ${limitString(origin.commitID, 7)}` })
+  if (origin.subfolder) out.push({ label: `subfolder: ${origin.subfolder}` })
+  return out
+})
+</script>
+
 <template>
-  <div>
-    <cv-tile style="padding: 0px">
-      <div style="padding: 16px; padding-bottom: 8px">
-        <div>
-          <h3 style="padding-bottom: 6px; font-weight: 500">
-            {{ dataTableTitle }}
-          </h3>
-          <h4 style="padding-bottom: 8px" v-html="dataTableSubtitle"></h4>
-          <cv-tag v-if="showLink" :label="linkLabel" />
-          <cv-tag v-if="showBranch" :label="branchLabel" />
-          <cv-tag v-if="showCommitID" :label="commitIDLabel" />
-          <cv-tag v-if="showSubfolder" :label="subfolderLabel" />
-        </div>
-      </div>
-      <div v-if="getDetections().length > 0 || model.scanning.isScanning">
-        <RegulatorResults style="padding-top: 12px" />
-        <StatisticsView style="padding: 22px 16px" />
-      </div>
-    </cv-tile>
-  </div>
+  <header class="result-title">
+    <h2 class="result-title__title">{{ title }}</h2>
+    <p class="result-title__subtitle">{{ detectionText }}</p>
+    <div v-if="tags.length > 0" class="result-title__tags">
+      <cds-tag v-for="tag in tags" :key="tag.label">{{ tag.label }}</cds-tag>
+    </div>
+  </header>
 </template>
 
-<script>
-import { model } from "@/model.js";
-import { getDetections, numberFormatter, formatSeconds, limitString } from "@/helpers";
-import RegulatorResults from "@/components/results/RegulatorResults.vue";
-import StatisticsView from "@/components/results/StatisticsView.vue";
+<style scoped>
+.result-title {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
 
-export default {
-  name: "ResultsTitle",
-  data() {
-    return {
-      model,
-    };
-  },
-  components: {
-    RegulatorResults,
-    StatisticsView,
-  },
-  computed: {
-    showLink() {
-      return model.codeOrigin.gitUrl != null;
-    },
-    linkLabel() {
-      return "gitUrl: " + model.codeOrigin.gitUrl;
-    },
-    showBranch() {
-      return model.codeOrigin.revision != null;
-    },
-    branchLabel() {
-      return "revision: " + model.codeOrigin.revision;
-    },
-    showCommitID() {
-      return model.codeOrigin.commitID != null;
-    },
-    commitIDLabel() {
-      return "commit: " + limitString(model.codeOrigin.commitID, 7);
-    },
-    showSubfolder() {
-      return model.codeOrigin.subfolder != null;
-    },
-    subfolderLabel() {
-      return "subfolder: " + model.codeOrigin.subfolder;
-    },
-    dataTableTitle() {
-      var title = "Unknown CBOM";
-      if (model.codeOrigin.uploadedFileName != null) {
-        title = model.codeOrigin.uploadedFileName + " (uploaded)";
-      }
-      if (model.codeOrigin.projectIdentifier != null) {
-        title = model.codeOrigin.projectIdentifier;
-      } else if (model.codeOrigin.scanUrl != null) {
-        title = model.codeOrigin.scanUrl.replace("https://", "");
-      }
-      return title;
-    },
-    dataTableSubtitle() {
-      let textColor = ""; //model.useDarkMode ? "#4589ff" : "#002d9c"
-      let fontWeight = 500;
+.result-title__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 300;
+  color: var(--cds-text-primary);
+}
 
-      var title = "";
-      if (
-        model.scanning.isScanning &&
-        model.scanning.liveDetections.length === 0
-      ) {
-        title = "Scanning code for cryptographic assets...";
-      } else if (
-        model.scanning.isScanning &&
-        model.scanning.liveDetections.length > 0
-      ) {
-        title = `<span style="color: ${textColor}; font-weight: ${fontWeight};">${model.scanning.liveDetections.length}</span> cryptographic assets found...`;
-      } else if (getDetections().length > 1) {
-        title = `<span style="color: ${textColor}; font-weight: ${fontWeight};">${
-          getDetections().length
-        }</span> cryptographic assets found.`;
-      } else if (getDetections().length === 1) {
-        title = `<span style="color: ${textColor}; font-weight: ${fontWeight};">${
-          getDetections().length
-        }</span> cryptographic asset found.`;
-      } else {
-        title = "No cryptographic asset has been found.";
-      }
-      if (model.scanning.numberOfFiles && model.scanning.numberOfLines) {
-        title += ` Scanned <span style="color: ${textColor}; font-weight: ${fontWeight};">${numberFormatter(
-          model.scanning.numberOfLines
-        )}</span> ${
-          model.scanning.numberOfLines > 1 ? "lines" : "line"
-        } of code across <span style="color: ${textColor}; font-weight: ${fontWeight};">${numberFormatter(
-          model.scanning.numberOfFiles
-        )}</span> ${model.scanning.numberOfFiles > 1 ? "files" : "file"}.`;
-      }
-      if (model.scanning.totalDuration) {
-        var timeSentence = "";
-        if (model.scanning.scanDuration) {
-          timeSentence += ` Took <span style="color: ${textColor}; font-weight: ${fontWeight};">${formatSeconds(
-            model.scanning.scanDuration
-          )}</span> to scan (<span style="color: ${textColor}; font-weight: ${fontWeight};">${formatSeconds(
-            model.scanning.totalDuration
-          )}</span> in total).`;
-        } else {
-          timeSentence += ` Took <span style="color: ${textColor}; font-weight: ${fontWeight};">${formatSeconds(
-            model.scanning.totalDuration
-          )}</span> in total.`;
-        }
-        title += timeSentence;
-      }
-      // TODO: make it actually refresh each second
-      // else if (model.scanning.isScanning) {
-      //     let currentTime = new Date()
-      //     title += ` Taking <span style="color: ${textColor}; font-weight: ${fontWeight};">${formatSeconds(currentTime - model.scanning.startTime)}</span>.`
-      // }
-      return `<h4>${title}</h4>`;
-    },
-  },
-  methods: {
-    limitString,
-    getDetections,
-  },
-};
-</script>
+.result-title__subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cds-text-secondary);
+}
+
+.result-title__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+</style>

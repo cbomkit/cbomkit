@@ -9,7 +9,10 @@ CBOMkit is a toolset for dealing with Cryptography Bill of Materials (CBOM). CBO
 - **CBOM Compliance Check**: Evaluate CBOMs created or uploaded against specified compliance policies and receive detailed compliance status reports.
 - **CBOM Database**: Collect and store CBOMs into the database and expose this data through a RESTful API.
 
-![CBOMkit Demo](.github/img/cbomkit.gif)
+![CBOMkit Demo — Vue 3 visualizer with KPI strip, drill-down filtering, and a primitive→algorithm treemap](.github/img/cbomkit.gif)
+
+> [!NOTE]
+> The frontend was rebuilt on Vue 3 + Vite + TypeScript + Pinia + @carbon/web-components in 2026. The visualizer above shows the redesigned charts: a KPI strip, five Carbon Charts (compliance donut, asset names circle pack, primitives donut, functions donut, primitive→algorithm treemap), and click-to-drill-down filtering of the asset table. See the [Visualizer features](#visualizer-features) section below for details.
 
 > [!WARNING]
 > The CBOMkit service does not build any repository prior to scanning. For Java repositories in particular, this means that we cannot rely on any build results (class files, jars) that could improve the scanning result. This potentially reduces completeness and accuracy of the findings since some Java symbols may not be resolved. For better results, use the [sonar-cryptography-plugin](https://github.com/cbomkit/sonar-cryptography) together with SonarQube or [CBOMkit-action](https://github.com/cbomkit/cbomkit-action) embedded in a pipeline definition that builds the code before scanning.
@@ -70,8 +73,25 @@ In the `ext-compliance` deployment, an additional Open Policy Agent service is u
 
 The web frontend serves as an intuitive user interface for interacting with the API server. It offers a range of functionalities, including:
  - Browsing the inventory of existing Cryptographic Bills of Materials (CBOMs)
- - Initiating new scans to generate CBOMs 
+ - Initiating new scans to generate CBOMs
  - Uploading existing CBOMs for visualization and analysis
+
+The frontend is built on Vue 3, Vite, TypeScript, Pinia, Vue Router 4, and IBM's [`@carbon/web-components`](https://github.com/carbon-design-system/carbon/tree/main/packages/web-components) and [`@carbon/charts`](https://github.com/carbon-design-system/carbon-charts). Local development runs against the Quarkus backend with `cd frontend && npm install && npm run dev` (Vite serves on `:8002` and proxies `/api` and `/v1/scan` to the backend on `:8081`). Production builds are produced by the multi-stage `frontend/docker/Dockerfile`.
+
+#### Visualizer features
+
+After a CBOM is scanned or uploaded, the results page lays out five Carbon Charts in a responsive grid and a Detected Assets table beneath:
+
+| Surface | What it shows |
+|---|---|
+| **KPI strip** | Asset count, quantum-vulnerable count, top primitive, top function — at-a-glance numbers above the charts |
+| **Compliance donut** | Breakdown of assets by compliance level. Click a slice to filter the table |
+| **Asset names circle pack** | Frequency of each cryptographic asset name. Click a node to filter the table |
+| **Primitives donut** | Distribution of asymmetric / symmetric / hash / KDF / KEM / signature / etc. primitives. Click a slice to filter the table |
+| **Functions donut** | Distribution of cryptographic functions (keygen, sign, digest, etc.). Click a slice to filter the table |
+| **Primitive → algorithm treemap** | A hierarchical view of primitive families containing specific algorithm names, sized by occurrence count. Click a tile to filter the table |
+
+Every chart has Carbon's toolbar enabled (zoom, expand, export PNG/CSV). The grid is responsive — charts reflow at narrower viewports. A dismissible filter chip appears above the table when a chart drill-down is active; click the same slice twice to toggle the filter off. Theme matches the host OS by default; a three-state toggle in the header cycles auto / light / dark and is reflected in both the chart palette (Carbon `g100` for dark, `white` for light) and surrounding surfaces.
 
 #### CBOMkit-coeus
 

@@ -1,0 +1,30 @@
+@use '@carbon/styles/scss/themes';
+@use '@carbon/styles/scss/theme' with ($fallback: themes.$white);
+@use '@carbon/styles/scss/reset';
+@use '@carbon/styles/scss/type';
+@use '@carbon/styles/scss/grid';
+@use '@carbon/charts/styles/styles.scss';
+
+:root,
+.make-the-carbon-theme-go-white {
+  @include theme.theme(themes.$white);
+}
+
+.make-the-carbon-theme-go-dark {
+  @include theme.theme(themes.$g100);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--cds-background);
+  color: var(--cds-text-primary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+#app {
+  font-family: var(--cds-body-compact-01-font-family, 'IBM Plex Sans', sans-serif);
+}

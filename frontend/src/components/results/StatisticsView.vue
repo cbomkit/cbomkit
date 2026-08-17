@@ -1,278 +1,313 @@
-<template>
-  <div style="display: flex; align-items: flex-start">
-    <div style="width: 20%; margin-inline: auto">
-      <!-- <h5 style="text-align: center; padding-bottom: 10px;">Proportion of Quantum Safe cryptographic assets</h5> -->
-      <cv-loading
-        v-if="isLoadingCompliance"
-        :active="true"
-        :overlay="false"
-        class="loading-indicator"
-      ></cv-loading>
-      <div v-else-if="hasValidComplianceResults">
-        <ccv-donut-chart
-          :data="complianceData"
-          :options="complianceOptions"
-          style="flex: 1"
-        ></ccv-donut-chart>
-        <!-- Compliance disclaimer only shown when using the local compliance service -->
-        <div
-          v-if="isUsingLocalComplianceService"
-          style="display: flex; padding-top: 14px; text-align: left; color: var(--cds-text-secondary);"
-        >
-          <p style="padding-right: 3px; size: small">
-          *
-          </p>
-          <p style="font-size: small">
-            This compliance data is approximate and given for illustrative purposes only.
-          </p>
-        </div>
-      </div>
-      <p
-        v-else
-        class="small-text"
-        style="margin-top: 50%;"
-      >
-        Unavailable compliance results
-      </p>
-    </div>
-    <div style="width: 20%; margin-inline: auto">
-      <cv-loading
-        v-if="getDetections().length == 0 && model.scanning.isScanning"
-        :active="true"
-        :overlay="false"
-        class="loading-indicator"
-      ></cv-loading>
-      <CcvCirclePackChart v-else :data="nameData" :options="nameOptions" />
-      <p
-        v-if="nameNumber > 0"
-        class="small-text"
-        style="padding-top: 46px;"
-      >
-        {{ nameNumber }} types of crypto assets
-      </p>
-    </div>
-    <div style="width: 20%; margin-inline: auto">
-      <!-- <h5 style="text-align: center; padding-bottom: 10px;">Distribution of detected cryptographic primitives</h5> -->
-      <cv-loading
-        v-if="getDetections().length == 0 && model.scanning.isScanning"
-        :active="true"
-        :overlay="false"
-        class="loading-indicator"
-      ></cv-loading>
-      <ccv-donut-chart
-        v-else
-        :data="primitiveData"
-        :options="primitiveOptions"
-        style="flex: 1"
-      ></ccv-donut-chart>
-    </div>
-    <!-- <div style="width: 20%; margin-inline: auto;">
-            <cv-loading
-            v-if="getDetections().length==0 && model.scanning.isScanning"
-            :active="true"
-            :overlay="false"
-            style="margin: auto; margin:70px auto"></cv-loading>
-            <ccv-donut-chart v-else :data='symmetricData' :options='symmetricOptions' style="flex: 1;"></ccv-donut-chart>
-        </div> -->
-    <div style="width: 20%; margin-inline: auto">
-      <!-- <h5 style="text-align: center; padding-bottom: 10px;">Distribution of detected cryptographic functions</h5> -->
-      <cv-loading
-        v-if="getDetections().length == 0 && model.scanning.isScanning"
-        :active="true"
-        :overlay="false"
-        class="loading-indicator"
-      ></cv-loading>
-      <ccv-donut-chart
-        v-else
-        :data="functionsData"
-        :options="functionsOptions"
-        style="flex: 1"
-      ></ccv-donut-chart>
-    </div>
-  </div>
-</template>
-
-<script>
-import { model } from "@/model.js";
+<script setup lang="ts">
+import { computed } from 'vue'
+import CarbonChart from '@/components/charts/CarbonChart.vue'
+import { useCbomStore } from '@/stores/cbom'
+import { getDetections } from '@/lib/cbom'
+import { countNames, countOccurrences } from '@/lib/info'
+import { capitalizeFirstLetter } from '@/lib/general'
 import {
-  getDetections,
-  getComplianceRepartition,
-  getComplianceLevels,
   getColorScale,
-  countOccurrences,
-  capitalizeFirstLetter,
-  countNames,
+  getComplianceLevels,
+  getComplianceRepartition,
   hasValidComplianceResults,
   isLoadingCompliance,
   isUsingLocalComplianceService,
-} from "@/helpers";
+} from '@/lib/compliance'
+import type { DetectionFilter } from '@/types/filter'
 
-export default {
-  name: "StatisticsView",
-  data() {
-    return {
-      model,
-    };
-  },
-  methods: {
-    getDetections,
-  },
-  computed: {
-    isLoadingCompliance,
-    hasValidComplianceResults,
-    isUsingLocalComplianceService,
-    complianceData() {
-      let countsMap = getComplianceRepartition();
-      let labelsMap = getComplianceLevels().reduce((acc, info) => {
-        acc[info.id] = info.label; // Map id to its label
-        return acc;
-      }, {});
-      
-      // Calculate total detections
-      let totalDetections = Object.values(countsMap).reduce((sum, value) => sum + value, 0);
-      
-      if (totalDetections === 0) {
-        // Return nothing to not display the chart when there is no data
-        return [];
-      }
+const emit = defineEmits<{
+  (event: 'filter-change', filter: DetectionFilter): void
+}>()
 
-      // Map the results to the expected format
-      let data = [];
-      Object.keys(countsMap).forEach(id => {
-        data.push({
-          group: labelsMap[id],
-          value: countsMap[id]
-        });
-      });
+const cbomStore = useCbomStore()
 
-      return data;
+const detections = computed(() => {
+  void cbomStore.cbom
+  void cbomStore.dependencies
+  return getDetections()
+})
+
+const sharedOptions = computed(() => ({
+  resizable: true,
+  toolbar: { enabled: true },
+  legend: { alignment: 'center' as const, enabled: true },
+}))
+
+// ── Compliance donut ────────────────────────────────────────────────────────────
+const complianceData = computed(() => {
+  const counts = getComplianceRepartition(cbomStore.policyCheckResult, detections.value)
+  const levels = getComplianceLevels(cbomStore.policyCheckResult)
+  const labelMap = Object.fromEntries(levels.map((l) => [l.id, l.label]))
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0)
+  if (total === 0) return []
+  return Object.entries(counts).map(([id, value]) => ({
+    group: labelMap[Number(id)] ?? String(id),
+    value,
+  }))
+})
+
+const complianceOptions = computed(() => ({
+  ...sharedOptions.value,
+  donut: {
+    center: {
+      label: `Crypto assets${isUsingLocalComplianceService(cbomStore.policyCheckResult) ? '*' : ''}`,
     },
-    complianceOptions() {
-      let colorScale = getColorScale();
-      return {
-        resizable: true,
-        donut: {
-          center: {
-            label: `Crypto Assets${isUsingLocalComplianceService() ? "*" : ""}`,
-          },
-          alignment: "center",
-        },
-        height: "320px",
-        toolbar: {
-          enabled: false,
-        },
-        theme: model.useDarkMode ? "g100" : "white",
-        color: {
-          scale: colorScale,
-        },
-        legend: {
-          alignment: "center",
-        },
-      };
-    },
-    nameData() {
-      const capitalisedList = countNames()[0].map((obj) => ({
-        ...obj,
-        name: obj.name.toUpperCase(),
-      }));
-      return capitalisedList;
-    },
-    nameNumber() {
-      return countNames()[1];
-    },
-    nameOptions() {
-      return {
-        resizable: true,
-        height: "230px",
-        toolbar: {
-          enabled: false,
-        },
-        theme: model.useDarkMode ? "g100" : "white",
-        legend: {
-          enabled: false,
-        },
-      };
-    },
-    primitiveData() {
-      // Small transformation: capitalise the first letter of each group (legend name)
-      const capitalisedList = countOccurrences("primitive")[0].map((obj) => ({
-        ...obj,
-        group: capitalizeFirstLetter(obj.group),
-      }));
-      return capitalisedList;
-    },
-    primitiveOptions() {
-      return {
-        resizable: true,
-        donut: {
-          center: {
-            label: "Crypto Primitives",
-            number: countOccurrences("primitive")[1],
-          },
-          alignment: "center",
-        },
-        height: "320px",
-        toolbar: {
-          enabled: false,
-        },
-        theme: model.useDarkMode ? "g100" : "white",
-        legend: {
-          alignment: "center",
-          enabled: true,
-        },
-      };
-    },
-    functionsData() {
-      // Small transformation: capitalise the first letter of each group (legend name)
-      const capitalisedList = countOccurrences("cryptoFunctions")[0].map(
-        (obj) => ({
-          ...obj,
-          group: capitalizeFirstLetter(obj.group),
-        })
-      );
-      return capitalisedList;
-    },
-    functionsOptions() {
-      return {
-        resizable: true,
-        donut: {
-          center: {
-            label: "Crypto Functions",
-            number: countOccurrences("cryptoFunctions")[1],
-          },
-          alignment: "center",
-        },
-        height: "320px",
-        toolbar: {
-          enabled: false,
-        },
-        theme: model.useDarkMode ? "g100" : "white",
-        legend: {
-          alignment: "center",
-          enabled: true,
-        },
-      };
-    },
+    alignment: 'center' as const,
   },
-};
+  color: {
+    scale: getColorScale(cbomStore.policyCheckResult, detections.value),
+  },
+}))
+
+// ── Asset name circle pack ──────────────────────────────────────────────────────
+const nameItems = computed(() => countNames(detections.value)[0])
+
+const nameData = computed(() =>
+  nameItems.value.map((item) => ({ ...item, name: item.name.toUpperCase() })),
+)
+
+const nameOptions = computed(() => ({
+  ...sharedOptions.value,
+  legend: { enabled: false },
+}))
+
+// ── Primitives donut ────────────────────────────────────────────────────────────
+const primitiveCounts = computed(() => countOccurrences(detections.value, 'primitive'))
+
+const primitiveData = computed(() =>
+  primitiveCounts.value[0].map((entry) => ({
+    ...entry,
+    group: capitalizeFirstLetter(entry.group),
+  })),
+)
+
+const primitiveOptions = computed(() => ({
+  ...sharedOptions.value,
+  donut: {
+    center: { label: 'Primitives', number: primitiveCounts.value[1] },
+    alignment: 'center' as const,
+  },
+}))
+
+// ── Functions donut ─────────────────────────────────────────────────────────────
+const functionCounts = computed(() => countOccurrences(detections.value, 'cryptoFunctions'))
+
+const functionData = computed(() =>
+  functionCounts.value[0].map((entry) => ({
+    ...entry,
+    group: capitalizeFirstLetter(entry.group),
+  })),
+)
+
+const functionOptions = computed(() => ({
+  ...sharedOptions.value,
+  donut: {
+    center: { label: 'Functions', number: functionCounts.value[1] },
+    alignment: 'center' as const,
+  },
+}))
+
+// ── Click → filter dispatch ─────────────────────────────────────────────────────
+// Carbon Charts puts the clicked datum in slightly different shapes depending on
+// the chart type: pie/donut hand back `{ data: { group, value }, ... }` (d3 wrap),
+// circle-pack returns the node data.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function unwrap(datum: any): any {
+  if (datum && typeof datum === 'object' && 'data' in datum) return datum.data
+  return datum
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onComplianceClick(raw: any) {
+  const datum = unwrap(raw)
+  emit('filter-change', { kind: 'compliance', value: datum?.group ?? null })
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onPrimitiveClick(raw: any) {
+  const datum = unwrap(raw)
+  emit('filter-change', { kind: 'primitive', value: (datum?.group ?? '').toLowerCase() || null })
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onFunctionClick(raw: any) {
+  const datum = unwrap(raw)
+  emit('filter-change', { kind: 'function', value: (datum?.group ?? '').toLowerCase() || null })
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onNameClick(raw: any) {
+  const datum = unwrap(raw)
+  emit('filter-change', { kind: 'name', value: datum?.name ?? datum?.group ?? null })
+}
+
+const isEmpty = computed(() => detections.value.length === 0)
+const isLoading = computed(() => isLoadingCompliance(cbomStore.policyCheckResult))
+const hasCompliance = computed(() => hasValidComplianceResults(cbomStore.policyCheckResult))
 </script>
 
+<template>
+  <section class="charts" aria-label="CBOM statistics">
+    <div class="charts__grid">
+      <article class="charts__card">
+        <header class="charts__card-header">
+          <h3>Compliance</h3>
+          <p v-if="isUsingLocalComplianceService(cbomStore.policyCheckResult)" class="muted">
+            *Local approximation
+          </p>
+        </header>
+        <div class="charts__body">
+          <div v-if="isLoading" class="state state--loading">
+            <cds-loading active overlay="false" />
+            <p>Evaluating compliance…</p>
+          </div>
+          <p v-else-if="!hasCompliance" class="state state--empty">
+            Compliance results unavailable.
+          </p>
+          <p v-else-if="complianceData.length === 0" class="state state--empty">
+            No assets detected yet.
+          </p>
+          <CarbonChart
+            v-else
+            type="donut"
+            :data="complianceData"
+            :options="complianceOptions"
+            @datum-click="onComplianceClick"
+          />
+        </div>
+      </article>
+
+      <article class="charts__card">
+        <header class="charts__card-header">
+          <h3>Asset names</h3>
+          <p class="muted">{{ nameItems.length }} unique</p>
+        </header>
+        <div class="charts__body">
+          <p v-if="isEmpty" class="state state--empty">No assets detected.</p>
+          <CarbonChart
+            v-else
+            type="circle-pack"
+            :data="nameData"
+            :options="nameOptions"
+            @datum-click="onNameClick"
+          />
+        </div>
+      </article>
+
+      <article class="charts__card">
+        <header class="charts__card-header">
+          <h3>Primitives</h3>
+          <p class="muted">{{ primitiveCounts[1] }} distinct</p>
+        </header>
+        <div class="charts__body">
+          <p v-if="isEmpty || primitiveData.length === 0" class="state state--empty">
+            No primitive metadata.
+          </p>
+          <CarbonChart
+            v-else
+            type="donut"
+            :data="primitiveData"
+            :options="primitiveOptions"
+            @datum-click="onPrimitiveClick"
+          />
+        </div>
+      </article>
+
+      <article class="charts__card">
+        <header class="charts__card-header">
+          <h3>Functions</h3>
+          <p class="muted">{{ functionCounts[1] }} distinct</p>
+        </header>
+        <div class="charts__body">
+          <p v-if="isEmpty || functionData.length === 0" class="state state--empty">
+            No function metadata.
+          </p>
+          <CarbonChart
+            v-else
+            type="donut"
+            :data="functionData"
+            :options="functionOptions"
+            @datum-click="onFunctionClick"
+          />
+        </div>
+      </article>
+    </div>
+  </section>
+</template>
+
 <style scoped>
-.loading-indicator {
-  margin: 70px auto
+.charts__grid {
+  display: grid;
+  /* Force four equal columns regardless of intrinsic content width. `minmax(0,
+     1fr)` is required so Carbon Charts' legends (which have a min-content
+     wider than the column) can't push the grid to wrap to a second row. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
-.small-text {
-  text-align: center;
-  font-size: small;
+
+/* Drop to two columns on narrow viewports where four would be unreadable. */
+@media (max-width: 720px) {
+  .charts__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.charts__card {
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  /* Fixed height — without this, Carbon Charts' fullscreen toolbar exit can
+     leave the inner SVG with a large intrinsic size that drags the card
+     vertically. Clipping with overflow:hidden absorbs any transient layout. */
+  height: 380px;
+  overflow: hidden;
+}
+
+.charts__card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.charts__card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--cds-text-primary);
+}
+
+.muted {
+  margin: 0;
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
 }
-</style>
 
-<style>
-@import "@carbon/charts-vue/styles.css";
+.charts__body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
 
-/* Changes the color of the loading indicator EVERYWHERE */
-.bx--loading__stroke {
-  stroke: var(--cds-layer-active) !important;
+.state {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  color: var(--cds-text-helper);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.state--empty {
+  font-style: italic;
+}
+
+.state--loading p {
+  margin: 0;
 }
 </style>

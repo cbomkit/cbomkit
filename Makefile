@@ -12,13 +12,16 @@ build-backend-image: build-backend
 		-f src/main/docker/Dockerfile.jvm \
 		. \
 		--load
-# build the container image for the frontend
+# build the container image for the frontend (Vue 3 + Vite, built inside the image)
 build-frontend-image:
 	$(ENGINE) build \
 		-t cbomkit-frontend:${VERSION} \
 		-f frontend/docker/Dockerfile \
 		./frontend \
 		--load
+# run the Vite dev server locally for the frontend
+dev-frontend-local:
+	cd frontend && npm install && npm run dev
 # run the dev setup using docker/podman compose
 dev:
 	env CBOMKIT_VERSION=${VERSION} CBOMKIT_VIEWER=false POSTGRESQL_AUTH_USERNAME=cbomkit POSTGRESQL_AUTH_PASSWORD=cbomkit $(ENGINE)-compose --profile dev up -d

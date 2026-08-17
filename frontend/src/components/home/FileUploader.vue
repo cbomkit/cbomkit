@@ -1,150 +1,158 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import CarbonIcon from '@/components/CarbonIcon.vue'
+import { useErrorsStore } from '@/stores/errors'
+import { showResultFromUpload } from '@/lib/cbom'
+import { getComplianceReport } from '@/services/api'
+import { isViewerOnly } from '@/config'
+import { ErrorStatus } from '@/types/errors'
+import type { Cbom } from '@/types/cbom'
+
+import CloudUpload24 from '@carbon/icons/es/cloud--upload/24.js'
+
+const emit = defineEmits<{ (event: 'uploaded'): void }>()
+const errors = useErrorsStore()
+const inputRef = ref<HTMLInputElement | null>(null)
+const isDraggingOver = ref(false)
+const errorMessage = ref<string | null>(null)
+
+const title = isViewerOnly() ? 'Drop a CBOM here to visualize it' : 'Drop a CBOM here'
+const subtitle = '(or click to browse)'
+
+function pickFile() {
+  inputRef.value?.click()
+}
+
+function readFile(file: File) {
+  errorMessage.value = null
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const cbom = JSON.parse(String(reader.result)) as Cbom
+      showResultFromUpload(cbom, file.name)
+      void getComplianceReport(cbom)
+      emit('uploaded')
+    } catch (error) {
+      console.error('Error reading uploaded file', error)
+      errorMessage.value = 'Please upload a valid JSON file.'
+    }
+  }
+  reader.onerror = () => {
+    errorMessage.value = 'Could not read the file.'
+  }
+  reader.readAsText(file)
+}
+
+function onChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  if (!files || files.length === 0) return
+  if (files.length > 1) {
+    errors.addError(ErrorStatus.MultiUpload)
+    errorMessage.value = 'Please upload a single CBOM file.'
+    input.value = ''
+    return
+  }
+  readFile(files[0])
+  input.value = ''
+}
+
+function onDrop(event: DragEvent) {
+  event.preventDefault()
+  isDraggingOver.value = false
+  const items = event.dataTransfer?.files
+  if (!items || items.length === 0) return
+  if (items.length > 1) {
+    errors.addError(ErrorStatus.MultiUpload)
+    errorMessage.value = 'Please upload a single CBOM file.'
+    return
+  }
+  readFile(items[0])
+}
+
+function onDragOver(event: DragEvent) {
+  event.preventDefault()
+  isDraggingOver.value = true
+}
+
+function onDragLeave() {
+  isDraggingOver.value = false
+}
+</script>
+
 <template>
-  <div>
-    <!-- Remove some margin-top to counterbalance some weird spacing of the file uploader component -->
-    <cv-file-uploader
-      style="margin-top: -24px;"
-      ref="test"
-      v-model="uploadedFiles"
-      v-on:change="loadFiles"
-      kind="drag-target"
-      accept=".json"
-      :clear-on-reselect="true"
-      :initial-state-uploading="true"
-      :multiple="false"
-      :removable="true"
-    >
-      <template slot="drop-target">
-        <div :class="isViewerOnly ? 'drop-container-viewer' : 'drop-container-generator'">
-          <div class="description-container">
-            <div :class="isViewerOnly ? 'description-header-viewer' : 'description-header-generator'">
-              <CloudUpload24 style="margin-right: 8px" />
-              <div>
-                {{ title }}
-              </div>
-            </div>
-            <div :class="isViewerOnly ? 'description-subheader-viewer' : 'description-subheader-generator'">
-              {{ subtitle }}
-            </div>
-          </div>
-        </div>
-      </template>
-    </cv-file-uploader>
-    
+  <div
+    class="file-uploader"
+    :class="{ 'file-uploader--over': isDraggingOver }"
+    role="button"
+    tabindex="0"
+    @click="pickFile"
+    @keydown.enter="pickFile"
+    @keydown.space.prevent="pickFile"
+    @drop="onDrop"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+  >
+    <CarbonIcon :icon="CloudUpload24" aria-label="Upload" />
+    <div class="file-uploader__text">
+      <div class="file-uploader__title">{{ title }}</div>
+      <div class="file-uploader__subtitle">{{ subtitle }}</div>
+    </div>
+    <input
+      ref="inputRef"
+      type="file"
+      accept="application/json,.json"
+      hidden
+      @change="onChange"
+    />
+    <p v-if="errorMessage" class="file-uploader__error">{{ errorMessage }}</p>
   </div>
 </template>
 
-<script>
-import { model, ErrorStatus } from "@/model.js";
-import { isViewerOnly } from "@/helpers.js";
-import { CloudUpload24 } from "@carbon/icons-vue";
-import { showResultFromUpload } from "@/helpers";
-
-export default {
-  name: "FileUploader",
-  data() {
-    return {
-      model,
-      uploadedFiles: [],
-      subtitle: "(or click to browse)"
-    };
-  },
-  components: {
-    CloudUpload24,
-  },
-  computed: {
-    isViewerOnly,
-    title() {
-      return isViewerOnly() ? "Drop a CBOM here to visualize it" : "Drop a CBOM here";
-    }
-  },
-  methods: {
-    loadFiles: function (filesInfo) {
-      if (filesInfo.length == 2 && filesInfo[0].state == "") {
-        // Only case where we accept two uploaded documents: if the first uploaded document was invalid, we accept that the user uploads a second document, that will replace the first one
-        this.uploadedFiles.shift();
-      }
-      this.fileReader = new FileReader();
-      this.fileReader.readAsText(this.uploadedFiles[0].file);
-      this.fileReader.addEventListener("load", this.onLoadingComplete);
-    },
-    onLoadingComplete: function () {
-      if (this.uploadedFiles.length != 1) {
-        // Allows uploading only a single document
-        model.addError(ErrorStatus.MultiUpload);
-        console.error("Error: more than one document has been uploaded");
-        this.uploadedFiles = [];
-        return;
-      }
-      try {
-        let cbom = JSON.parse(this.fileReader.result);
-        let name = this.uploadedFiles[0].file.name;
-        console.log(`Uploaded CBOM '${name}':`, cbom);
-        this.$refs.test.setState(0, "complete");
-        showResultFromUpload(cbom, name);
-      } catch (error) {
-        let file = this.uploadedFiles[0].file;
-        console.log(file);
-        this.$refs.test.setInvalidMessage(
-          0,
-          `Please upload a valid JSON file.`
-        );
-        this.$refs.test.setState(0, "");
-        console.error("Error reading uploaded file");
-        // The error is displayed by the component, no need to add a notification
-      }
-    },
-  },
-};
-</script>
-
 <style scoped>
-.drop-container-generator {
+.file-uploader {
+  border: 2px dashed var(--cds-border-strong);
+  background: var(--cds-layer);
+  padding: 28px 24px;
   display: flex;
-  min-height: 60px;
-  margin: auto;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-.drop-container-viewer {
-  display: flex;
-  min-height: 180px;
-  margin: auto;
+
+.file-uploader:hover,
+.file-uploader--over {
+  background: var(--cds-layer-hover);
+  border-color: var(--cds-focus);
 }
-.description-container {
-  margin: auto;
+
+.file-uploader svg {
+  width: 32px;
+  height: 32px;
+  fill: var(--cds-text-primary);
+}
+
+.file-uploader__text {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 4px;
 }
-.description-header-generator {
-  display: flex;
-  align-items: center;
-  font-size: large;
-  font-weight: 400;
-}
-.description-subheader-generator {
-  font-size: small;
-  font-weight: 400;
-  margin-top: 4px;
-}
-.description-header-viewer {
-  display: flex;
-  align-items: center;
-  font-size: x-large;
-  font-weight: 400;
-}
-.description-subheader-viewer {
-  font-size: medium;
-  font-weight: 400;
-  margin-top: 4px;
-}
-</style>
 
-<!-- Allows cv-file-uploader to fully extend horizontally, and decreases its vertical size  -->
-<style>
-.bx--file-browse-btn {
-  max-width: none !important;
+.file-uploader__title {
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--cds-text-primary);
 }
-.bx--file__drop-container {
-  height: auto !important;
-  background-color: var(--cds-layer);
+
+.file-uploader__subtitle {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+}
+
+.file-uploader__error {
+  margin: 0 0 0 auto;
+  color: var(--cds-support-error, #da1e28);
+  font-size: 0.875rem;
 }
 </style>

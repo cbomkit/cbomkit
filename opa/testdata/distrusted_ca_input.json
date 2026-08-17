@@ -1,0 +1,73 @@
+{
+  "input": {
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.6",
+    "components": [
+      {
+        "type": "cryptographic-asset",
+        "bom-ref": "cert-diginotar-001",
+        "name": "diginotar-leaf.example.com",
+        "cryptoProperties": {
+          "assetType": "certificate",
+          "certificateProperties": {
+            "subjectName": "CN=*.google.com",
+            "issuerName": "CN=DigiNotar Root CA, O=DigiNotar, C=NL",
+            "notValidBefore": "2011-07-10T19:06:30Z",
+            "notValidAfter": "2013-07-09T19:06:30Z",
+            "certificateFormat": "X.509"
+          }
+        }
+      },
+      {
+        "type": "cryptographic-asset",
+        "bom-ref": "cert-symantec-legacy-002",
+        "name": "symantec-pre-2017",
+        "cryptoProperties": {
+          "assetType": "certificate",
+          "certificateProperties": {
+            "subjectName": "CN=legacy.example.com",
+            "issuerName": "CN=Symantec Class 3 Secure Server CA - G4, O=Symantec Corporation, C=US",
+            "certificateFormat": "X.509"
+          }
+        }
+      },
+      {
+        "type": "cryptographic-asset",
+        "bom-ref": "cert-trusted-003",
+        "name": "letsencrypt-leaf",
+        "cryptoProperties": {
+          "assetType": "certificate",
+          "certificateProperties": {
+            "subjectName": "CN=app.example.com",
+            "issuerName": "CN=R3, O=Let's Encrypt, C=US",
+            "certificateFormat": "X.509"
+          }
+        }
+      },
+      {
+        "type": "cryptographic-asset",
+        "bom-ref": "cert-no-issuer-004",
+        "name": "incomplete-cert",
+        "cryptoProperties": {
+          "assetType": "certificate",
+          "certificateProperties": {
+            "subjectName": "CN=missing-issuer.example.com",
+            "certificateFormat": "X.509"
+          }
+        }
+      },
+      {
+        "type": "cryptographic-asset",
+        "bom-ref": "alg-rsa-005",
+        "name": "RSA-2048",
+        "cryptoProperties": {
+          "assetType": "algorithm",
+          "algorithmProperties": {
+            "primitive": "pke",
+            "nistQuantumSecurityLevel": 0
+          }
+        }
+      }
+    ]
+  }
+}
