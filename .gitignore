@@ -41,3 +41,8 @@ nb-configuration.xml
 
 # Plugin directory
 /.quarkus/cli/plugins/
+
+### Claude Code (local only) ###
+.claude/settings.local.json
+.claude/worktrees
+.superpowers
