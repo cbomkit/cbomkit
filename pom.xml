@@ -29,7 +29,22 @@
 
     <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
+    <spotless-plugin.version>3.0.0</spotless-plugin.version>
+    <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
     <google-java-format.version>1.28.0</google-java-format.version>
+
+    <app-bootstrap-core.version>0.2.16</app-bootstrap-core.version>
+    <cbomkit-lib.version>1.1.0</cbomkit-lib.version>
+    <jgit.version>7.3.0.202506031305-r</jgit.version>
+    <httpclient5.version>5.5</httpclient5.version>
+    <maven-model.version>3.9.11</maven-model.version>
+    <commons-configuration.version>1.10</commons-configuration.version>
+    <protobuf-java.version>4.32.1</protobuf-java.version>
+    <puppycrawl-checkstyle.version>11.0.1</puppycrawl-checkstyle.version>
+
+    <assertj.version>3.27.6</assertj.version>
+    <archunit.version>1.4.1</archunit.version>
+    <rest-assured.version>5.5.6</rest-assured.version>
   </properties>
 
   <repositories>
@@ -93,27 +108,27 @@
     <dependency>
       <groupId>io.github.n1ckl0sk0rtge</groupId>
       <artifactId>app-bootstrap-core</artifactId>
-      <version>0.2.16</version>
+      <version>${app-bootstrap-core.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
-      <version>7.3.0.202506031305-r</version>
+      <version>${jgit.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents.client5</groupId>
       <artifactId>httpclient5</artifactId>
-      <version>5.5</version>
+      <version>${httpclient5.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-model</artifactId>
-      <version>3.9.11</version>
+      <version>${maven-model.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-configuration</groupId>
       <artifactId>commons-configuration</artifactId>
-      <version>1.10</version>
+      <version>${commons-configuration.version}</version>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -123,13 +138,13 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.27.6</version>
+      <version>${assertj.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.tngtech.archunit</groupId>
       <artifactId>archunit-junit5</artifactId>
-      <version>1.4.1</version>
+      <version>${archunit.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -142,19 +157,19 @@
     <dependency> <!-- Fixes issue #138 -->
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>4.32.1</version> <!-- Use the latest stable version -->
+      <version>${protobuf-java.version}</version> <!-- Use the latest stable version -->
     </dependency>
 
     <dependency>
       <groupId>org.pqca</groupId>
       <artifactId>cbomkit-lib</artifactId>
-      <version>1.1.0</version>
+      <version>${cbomkit-lib.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>5.5.6</version>
+      <version>${rest-assured.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -218,7 +233,7 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>${spotless-plugin.version}</version>
         <configuration>
           <java>
             <includes>
@@ -267,7 +282,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>${checkstyle-plugin.version}</version>
         <configuration>
           <includeResources>false</includeResources>
           <includeTestResources>false</includeTestResources>
@@ -304,7 +319,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>11.0.1</version>
+            <version>${puppycrawl-checkstyle.version}</version>
           </dependency>
         </dependencies>
         <executions>
