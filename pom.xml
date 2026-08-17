@@ -40,7 +40,7 @@
     <maven-model.version>3.9.11</maven-model.version>
     <commons-configuration.version>1.10</commons-configuration.version>
     <protobuf-java.version>4.32.1</protobuf-java.version>
-    <puppycrawl-checkstyle.version>11.0.1</puppycrawl-checkstyle.version>
+    <puppycrawl-checkstyle.version>13.11.0</puppycrawl-checkstyle.version>
 
     <assertj.version>3.27.7</assertj.version>
     <archunit.version>1.4.1</archunit.version>
