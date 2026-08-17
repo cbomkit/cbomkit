@@ -36,7 +36,7 @@
     <app-bootstrap-core.version>0.2.16</app-bootstrap-core.version>
     <cbomkit-lib.version>1.1.0</cbomkit-lib.version>
     <jgit.version>7.3.0.202506031305-r</jgit.version>
-    <httpclient5.version>5.5</httpclient5.version>
+    <httpclient5.version>5.6.4</httpclient5.version>
     <maven-model.version>3.9.11</maven-model.version>
     <commons-configuration.version>1.10</commons-configuration.version>
     <protobuf-java.version>4.32.1</protobuf-java.version>
