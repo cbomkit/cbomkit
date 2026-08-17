@@ -22,6 +22,7 @@ package com.ibm.infrastructure.scanning.repositories;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.Entity;
 import java.sql.Timestamp;
@@ -32,7 +33,18 @@ import org.pqca.scanning.Language;
 @Entity
 @Cacheable
 class ScanResult extends PanacheEntity {
-    @Nonnull public Language language;
+    /**
+     * Holds {@link Language#name()} and is deliberately <em>not</em> mapped as an enum: Hibernate
+     * emits a check constraint listing the known values for every enum typed attribute, whether it
+     * is stored as an ordinal, as {@code @Enumerated(STRING)} or through an {@code
+     * AttributeConverter} (see {@code EnumJavaType#getCheckCondition}). Since {@code
+     * quarkus.hibernate-orm.schema-management.strategy=update} never rewrites an existing check
+     * constraint, adding a language to cbomkit-lib would make every insert fail on databases that
+     * were created before that language existed. Storing plain text keeps the set of supported
+     * languages out of the schema.
+     */
+    @Nonnull public String language;
+
     @Nonnull public Timestamp startTime;
     @Nonnull public Timestamp endTime;
     public int numberOfScannedLines;
@@ -51,11 +63,23 @@ class ScanResult extends PanacheEntity {
             int numberOfScannedLines,
             int numberOfScannedFiles,
             @Nonnull JsonNode cbom) {
-        this.language = language;
+        this.language = language.name();
         this.startTime = new Timestamp(startTime);
         this.endTime = new Timestamp(endTime);
         this.numberOfScannedLines = numberOfScannedLines;
         this.numberOfScannedFiles = numberOfScannedFiles;
         this.cbom = cbom;
+    }
+
+    /**
+     * @return the stored language, or {@code null} if this row was written by a version of
+     *     cbomkit-lib that supported a language this version no longer knows.
+     */
+    @Nullable Language language() {
+        try {
+            return Language.valueOf(this.language);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

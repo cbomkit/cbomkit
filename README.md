@@ -202,6 +202,17 @@ Different deployment configurations utilize distinct sources for compliance veri
 | `production`     | In the standard deployment, a core compliance service is integrated into the backend service. This implementation enables the execution of compliance checks via the RESTful API, providing a scalable and centralized approach to cryptographic policy verification.                                                                                                                                                                |
 | `ext-compliance` | In advanced deployment scenarios, compliance evaluation is delegated to a dedicated external service. This service can invoked by the API server as needed. This configuration maintains the standard user experience for both the frontend and API of the CBOMkit, mirroring the functionality of the `production` configuration while allowing for more sophisticated or specialized compliance checks to be performed externally. |
 
+### Database Migrations
+
+The schema is managed by Hibernate (`quarkus.hibernate-orm.schema-management.strategy=update`), which
+only ever adds tables and columns. Changes it cannot apply — altering a column type or a constraint —
+are shipped as SQL scripts in [`migrations/`](migrations/) and have to be run once against existing
+databases, in file name order. A freshly created database never needs them.
+
+| Migration | Required for databases created before |
+|-----------|---------------------------------------|
+| [`2026-08-17-scanresult-language-as-text.sql`](migrations/2026-08-17-scanresult-language-as-text.sql) | Go support ([#345](https://github.com/cbomkit/cbomkit/issues/345)) |
+
 ### Handling of Credentials
 
 When a new scan of a GitHub repository is started, CBOMkit generates a temporary local clone

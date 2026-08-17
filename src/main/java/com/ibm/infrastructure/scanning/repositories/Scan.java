@@ -110,9 +110,18 @@ class Scan extends PanacheEntityBase {
         try {
             final Map<Language, LanguageScan> languageScans = new EnumMap<>(Language.class);
             for (ScanResult scanResult : scanResults) {
+                final Language language = scanResult.language();
+                if (language == null) {
+                    LOGGER.warn(
+                            "Skipping scan result of scan {}: '{}' is not a language supported by"
+                                    + " this version",
+                            this.id,
+                            scanResult.language);
+                    continue;
+                }
                 final LanguageScan languageScan =
                         new LanguageScan(
-                                scanResult.language,
+                                language,
                                 new ScanMetadata(
                                         scanResult.startTime.getTime(),
                                         scanResult.endTime.getTime(),
