@@ -31,7 +31,7 @@
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
     <spotless-plugin.version>3.0.0</spotless-plugin.version>
     <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
-    <google-java-format.version>1.28.0</google-java-format.version>
+    <google-java-format.version>1.36.1</google-java-format.version>
 
     <app-bootstrap-core.version>0.2.16</app-bootstrap-core.version>
     <cbomkit-lib.version>1.1.0</cbomkit-lib.version>
