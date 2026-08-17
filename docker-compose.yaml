@@ -36,6 +36,8 @@ services:
     deploy:
       resources:
         reservations:
+          memory: 8g
+        limits:
           memory: 16g
     profiles:
       - prod
