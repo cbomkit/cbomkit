@@ -33,6 +33,11 @@ make production ENGINE=podman
 
 (This requires podman-compose to have been installed via `pip3 install podman-compose`).
 
+To run the latest development build instead of the latest release, use the `edge` images:
+```shell
+make edge
+```
+
 Next steps:
 - Enter a git url like [https://github.com/keycloak/keycloak](https://github.com/keycloak/keycloak) or a package url (PURL) like `pkg:maven/io.quarkus/quarkus-core@3.18.1` to generate a CBOM
 - View your generated CBOM by selecting your previously scanned CBOM
@@ -59,6 +64,7 @@ helm install cbomkit \
 ## Architecture
 
 The CBOMkit consists of three integral components: a web frontend, an API server, and a database.
+In the `ext-compliance` deployment, an additional Open Policy Agent service is used for compliance evaluation (see [External Compliance Evaluation](#external-compliance-evaluation)).
 
 ### Frontend and CBOMkit-coeus
 
@@ -118,11 +124,14 @@ The compliance framework is designed with extensibility in mind, providing a sol
 
 CBOMkit supports the use of [Open Policy Agent (OPA)](https://www.openpolicyagent.org) as an external compliance evaluation service. OPA evaluates compliance based on user-defined policies written in its declarative policy language, [Rego](https://www.openpolicyagent.org/docs/policy-language).
 
-In CBOMkit, you can configure OPA as an external compliance compliance service using either:
+In CBOMkit, you can configure OPA as an external compliance service using either:
 - the environment variable `CBOMKIT_OPA_API_BASE`, or
 - the configuration key `cbomkit.ext-policies.opa-api-base` in [application.properties](src/main/resources/application.properties).
 
 If either option is specified, it must contain the base URL of a running OPA instance. If the variable or property is unset, or if CBOMkit cannot connect to OPA, the system automatically falls back to its built-in internal compliance service.
+
+> [!NOTE]
+> The compliance service is selected once, on first use, and then cached for the lifetime of the process. Changing `CBOMKIT_OPA_API_BASE` (or starting OPA after CBOMkit) therefore requires a restart of the API server to take effect.
 
 The internal compliance service implements a fixed “quantum-safe policy.” This built-in policy checks the quantum safety of asymmetric algorithms using whitelists of algorithm OIDs and names.
 
@@ -137,7 +146,7 @@ package policies
 
 Each rule includes:
 - A header,
-= A conditional expression (the logic), and
+- A conditional expression (the logic), and
 - A JSON object to be returned when the condition is satisfied.
 
 For compliance evaluation, OPA executes these rules on the set of CBOM components.
@@ -147,10 +156,17 @@ By convention, a rule header should follow this format:
 <policy_name>.findings contains finding if ...
 ```
 
-The <policy_name> identifies the policy being evaluated. It must match the policy name configured in the CBOMkit front end through the environment variable VUE_APP_POLICY_NAME.
-By default, this is "quantum_safe", the predefined policy included in quantum_safe.rego.
+The `<policy_name>` identifies the policy being evaluated. It must match the policy name configured in the CBOMkit front end through the environment variable `VUE_APP_POLICY_NAME`.
+By default, this is `quantum_safe`, the predefined policy included in [quantum_safe.rego](opa/quantum_safe.rego).
 
 When running CBOMkit as a Docker application via `make ext-compliance` (see below), the OPA container is automatically configured with this default policy file.
+If you run OPA yourself instead, you can push the sample policy to a running instance with [upload_quantum_safe.sh](opa/upload_quantum_safe.sh):
+
+```shell
+cd opa
+# defaults to http://localhost:8181, pass a different base URL as first argument
+./upload_quantum_safe.sh
+```
 
 ###### Findings Format
 Each policy must produce a JSON list named `findings`, which CBOMkit expects in OPA’s evaluation response.
