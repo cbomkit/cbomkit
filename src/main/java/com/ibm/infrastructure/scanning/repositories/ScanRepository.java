@@ -23,6 +23,7 @@ import app.bootstrap.core.ddd.IDomainEventBus;
 import app.bootstrap.core.ddd.Repository;
 import com.ibm.domain.scanning.ScanAggregate;
 import com.ibm.domain.scanning.ScanId;
+import com.ibm.infrastructure.errors.AggregatePersistenceFailed;
 import com.ibm.infrastructure.errors.EntityNotFoundById;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ArcContainer;
@@ -98,6 +99,9 @@ public final class ScanRepository extends Repository<ScanId, ScanAggregate>
             if (QuarkusTransaction.getStatus() != Status.STATUS_NO_TRANSACTION) {
                 QuarkusTransaction.rollback();
             }
+            // never swallow this: the caller would carry on and report a scan as finished while
+            // no state was written and no domain event was emitted
+            throw new AggregatePersistenceFailed(entity.getId(), e);
         } finally {
             container.requestContext().terminate();
         }
