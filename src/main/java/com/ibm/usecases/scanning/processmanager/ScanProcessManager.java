@@ -58,7 +58,6 @@ import jakarta.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,6 +66,7 @@ import org.pqca.errors.CBOMSerializationFailed;
 import org.pqca.errors.ClientDisconnected;
 import org.pqca.indexing.IndexingService;
 import org.pqca.indexing.ProjectModule;
+import org.pqca.indexing.csharp.CSharpIndexService;
 import org.pqca.indexing.go.GoIndexService;
 import org.pqca.indexing.java.JavaIndexService;
 import org.pqca.indexing.python.PythonIndexService;
@@ -76,6 +76,7 @@ import org.pqca.progress.ProgressMessageType;
 import org.pqca.scanning.Language;
 import org.pqca.scanning.ScanResultDTO;
 import org.pqca.scanning.ScannerService;
+import org.pqca.scanning.csharp.CSharpScannerService;
 import org.pqca.scanning.go.GoScannerService;
 import org.pqca.scanning.java.JavaScannerService;
 import org.pqca.scanning.python.PythonScannerService;
@@ -292,21 +293,20 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
                     Optional.ofNullable(this.projectDirectory)
                             .orElseThrow(GitCloneResultNotAvailable::new);
 
-            // set up scanners
-            final Map<Language, IndexingService> indexers = new HashMap<>();
-            // java
-            indexers.put(Language.JAVA, new JavaIndexService(this.progressDispatcher, projectDir));
-            // python
-            indexers.put(
-                    Language.PYTHON, new PythonIndexService(this.progressDispatcher, projectDir));
-            // go
-            indexers.put(Language.GO, new GoIndexService(this.progressDispatcher, projectDir));
-
-            // run indexers
+            // set up and run indexers
             for (Language language : Language.values()) {
-                if (!indexers.containsKey(language)) continue;
+                final IndexingService indexer =
+                        switch (language) {
+                            case Language.JAVA ->
+                                    new JavaIndexService(this.progressDispatcher, projectDir);
+                            case Language.PYTHON ->
+                                    new PythonIndexService(this.progressDispatcher, projectDir);
+                            case Language.GO ->
+                                    new GoIndexService(this.progressDispatcher, projectDir);
+                            case Language.CSHARP ->
+                                    new CSharpIndexService(this.progressDispatcher, projectDir);
+                        };
 
-                final IndexingService indexer = indexers.get(language);
                 final List<ProjectModule> languageIndex =
                         indexer.index(scanAggregate.getPackageFolder().orElse(null));
                 this.index.put(language, languageIndex);
@@ -348,37 +348,34 @@ public final class ScanProcessManager extends ProcessManager<ScanId, ScanAggrega
             Optional.of(this.index).filter(m -> !m.isEmpty()).orElseThrow(NoIndexForProject::new);
             Optional.ofNullable(this.projectDirectory).orElseThrow(NoProjectDirectoryProvided::new);
 
-            // set up scanners
-            final Map<Language, ScannerService> scanners = new HashMap<>();
-
-            // java
-            final JavaScannerService javaScannerService =
-                    new JavaScannerService(this.progressDispatcher, this.projectDirectory);
-            javaScannerService.setRequireBuild(false);
-            javaScannerService.addJavaDependencyJar(this.javaJarsDirPath);
-
-            scanners.put(Language.JAVA, javaScannerService);
-
-            // python
-            final PythonScannerService pythonScannerService =
-                    new PythonScannerService(this.progressDispatcher, this.projectDirectory);
-            scanners.put(Language.PYTHON, pythonScannerService);
-
-            // go
-            final GoScannerService goScannerService =
-                    new GoScannerService(this.progressDispatcher, this.projectDirectory);
-            scanners.put(Language.GO, goScannerService);
-
             // progress scan statistics
             final long startTime = System.currentTimeMillis();
             int numberOfScannedLine = 0;
             int numberOfScannedFiles = 0;
 
-            // run scanners
+            // set up and run scanners
             for (Language language : Language.values()) {
-                if (!scanners.containsKey(language)) continue;
+                final ScannerService scanner =
+                        switch (language) {
+                            case Language.JAVA -> {
+                                final JavaScannerService javaScannerService =
+                                        new JavaScannerService(
+                                                this.progressDispatcher, this.projectDirectory);
+                                javaScannerService.setRequireBuild(false);
+                                javaScannerService.addJavaDependencyJar(this.javaJarsDirPath);
+                                yield javaScannerService;
+                            }
+                            case Language.PYTHON ->
+                                    new PythonScannerService(
+                                            this.progressDispatcher, this.projectDirectory);
+                            case Language.GO ->
+                                    new GoScannerService(
+                                            this.progressDispatcher, this.projectDirectory);
+                            case Language.CSHARP ->
+                                    new CSharpScannerService(
+                                            this.progressDispatcher, this.projectDirectory);
+                        };
 
-                final ScannerService scanner = scanners.get(language);
                 final ScanResultDTO scanResultDTO = scanner.scan(this.index.get(language));
 
                 // update statistics
