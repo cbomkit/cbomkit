@@ -16,37 +16,38 @@ CBOMkit is a toolset for dealing with Cryptography Bill of Materials (CBOM). CBO
 
 ## Quickstart
 
-Starting the CBOMkit using `docker-compose`.
+First, clone the repository and navigate to the project directory:
+
 ```shell
-# clone the repository 
 git clone https://github.com/cbomkit/cbomkit
 cd cbomkit
+```
+
+### Deployment Options
+
+#### Option 1: Docker Compose
+
+Starting the CBOMkit using `docker-compose`.
+```shell
 # run the make command to start the docker compose 
 make production
 ```
-
-Alternatively, if you wish to use podman instead of docker, run the following:
-```shell
-# run the make command to start the docker compose using podman
-make production ENGINE=podman
-```
-
-(This requires podman-compose to have been installed via `pip3 install podman-compose`).
 
 To run the latest development build instead of the latest release, use the `edge` images:
 ```shell
 make edge
 ```
+#### Option 2: Podman
 
-Next steps:
-- Enter a git url like [https://github.com/keycloak/keycloak](https://github.com/keycloak/keycloak) or a package url (PURL) like `pkg:maven/io.quarkus/quarkus-core@3.18.1` to generate a CBOM
-- View your generated CBOM by selecting your previously scanned CBOM
-- Drag and drop CBOM from the [examples](example) into the dropbox to view it
+If you prefer Podman, ensure podman-compose is installed (`pip3 install podman-compose`), then run:
+```shell
+# run the make command to start the docker compose using podman
+make production ENGINE=podman
+```
 
-> [!NOTE]
-> By default, the service can be accessed at http://localhost:8001
+#### Option 3: Kubernetes (Helm)
 
-Deploy using the helm chart to a kubernetes environment. Pass the domain suffix and the cbomkit database creds via helm parameters.
+Deploy to a cluster by providing your domain and database credentials. This command automatically fetches the latest release tags:
 ```shell
 # clone the repository 
 git clone https://github.com/cbomkit/cbomkit
@@ -60,6 +61,17 @@ helm install cbomkit \
   --set frontend.tag=$(curl -s https://api.github.com/repos/cbomkit/cbomkit/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') \
   ./chart
 ```
+
+### Using CBOMkit
+
+- Access UI in the browser using http://localhost:8001/
+- Enter a git url like [https://github.com/keycloak/keycloak](https://github.com/keycloak/keycloak) or a package url (PURL) like `pkg:maven/io.quarkus/quarkus-core@3.18.1` to generate a CBOM
+- View your generated CBOM by selecting your previously scanned CBOM
+- Drag and drop CBOM from the [examples](example) into the dropbox to view it
+
+Default service endpoints:
+* UI can be accessed at http://localhost:8001/
+* API can be accessed at http://localhost:8081/api
 
 ## Architecture
 
@@ -170,7 +182,7 @@ cd opa
 
 ###### Findings Format
 Each policy must produce a JSON list named `findings`, which CBOMkit expects in OPA’s evaluation response.
-Every finding object must contain at least these three attributes:
+Every finding object must contain at least the first three mandatory attributes:
 
 ```rego
 {
@@ -200,7 +212,7 @@ Different deployment configurations utilize distinct sources for compliance veri
 |------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `coeus`          | A `quantum-safe` algorithm compliance check is natively implemented within the frontend. This integration allows for immediate, client-side assessment of basic quantum resistance criteria.                                                                                                                                                                                                                                         |
 | `production`     | In the standard deployment, a core compliance service is integrated into the backend service. This implementation enables the execution of compliance checks via the RESTful API, providing a scalable and centralized approach to cryptographic policy verification.                                                                                                                                                                |
-| `ext-compliance` | In advanced deployment scenarios, compliance evaluation is delegated to a dedicated external service. This service can invoked by the API server as needed. This configuration maintains the standard user experience for both the frontend and API of the CBOMkit, mirroring the functionality of the `production` configuration while allowing for more sophisticated or specialized compliance checks to be performed externally. |
+| `ext-compliance` | In advanced deployment scenarios, compliance evaluation is delegated to a dedicated external service. This service can be invoked by the API server as needed. This configuration maintains the standard user experience for both the frontend and API of the CBOMkit, mirroring the functionality of the `production` configuration while allowing for more sophisticated or specialized compliance checks to be performed externally. |
 
 ### Database Migrations
 
@@ -251,13 +263,21 @@ While the CBOMkit's scanning capabilities are currently bound to the Sonar Crypt
 design of this plugin allows for potential expansion to support additional languages and cryptographic libraries in 
 future updates.
 
-## Contribution Guidelines
+## Contributing to CBOMkit
 
-If you'd like to contribute to CBOMkit, please take a look at our
-[contribution guidelines](CONTRIBUTING.md). By participating, you are expected to uphold our [code of conduct](CODE_OF_CONDUCT.md).
+We welcome contributions—simply fork the CBOMkit repository, and then make a [pull
+request](https://help.github.com/articles/about-pull-requests/) containing your contribution.
 
-We use [GitHub issues](https://github.com/cbomkit/cbomkit/issues) for tracking requests and bugs. For questions
-start a discussion using [GitHub Discussions](https://github.com/cbomkit/cbomkit/discussions).
+See our [contributions guidelines](CONTRIBUTING.md) for more details. Please also review our
+[Code of Conduct](CODE_OF_CONDUCT.md) and ensure you adhere to its principles to help maintain
+a respectful and welcoming environment for everyone.
+
+## Support
+
+- **Source Code:** https://github.com/cbomkit/cbomkit
+- **Issue Tracker:** https://github.com/cbomkit/cbomkit/issues
+
+If you are having issues, please let us know by posting the issue on our GitHub issue tracker.
 
 ## License
 
