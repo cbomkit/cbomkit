@@ -46,3 +46,6 @@ nb-configuration.xml
 .claude/settings.local.json
 .claude/worktrees
 .superpowers
+
+# Local Make config with secrets (credentials, cluster domain, etc.)
+config.mk
