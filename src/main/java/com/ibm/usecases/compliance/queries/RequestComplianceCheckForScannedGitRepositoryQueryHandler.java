@@ -22,8 +22,8 @@ package com.ibm.usecases.compliance.queries;
 import app.bootstrap.core.cqrs.IQueryBus;
 import app.bootstrap.core.cqrs.QueryHandler;
 import com.ibm.domain.compliance.PolicyIdentifier;
-import com.ibm.infrastructure.compliance.ComplianceFinding;
 import com.ibm.infrastructure.compliance.ComplianceResult;
+import com.ibm.infrastructure.compliance.ComplianceResultFactory;
 import com.ibm.infrastructure.compliance.IComplianceConfiguration;
 import com.ibm.infrastructure.compliance.service.ComplianceCheckResultDTO;
 import com.ibm.infrastructure.compliance.service.IComplianceService;
@@ -33,6 +33,8 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.Nonnull;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
 import org.pqca.scanning.CBOM;
 
 @Singleton
@@ -73,24 +75,18 @@ public final class RequestComplianceCheckForScannedGitRepositoryQueryHandler
         final ComplianceCheckResultDTO complianceCheckResultDTO =
                 this.complianceService.evaluate(policyIdentifier, cbom);
 
-        if (complianceCheckResultDTO.error()) {
-            return ComplianceResult.error(this.complianceService.getName());
-        }
-        return new ComplianceResult(
+        return ComplianceResultFactory.fromServiceResult(
                 this.complianceService.getName(),
                 policyIdentifier.id(),
-                complianceCheckResultDTO.policyResults().stream()
-                        .map(
-                                result ->
-                                        new ComplianceFinding(
-                                                result.identifier(),
-                                                result.complianceLevel().id(),
-                                                result.message()))
-                        .toList(),
+                complianceCheckResultDTO,
                 this.complianceService.getComplianceLevels(),
                 this.complianceService.getDefaultComplianceLevel().id(),
-                complianceCheckResultDTO.policyResults().stream()
-                        .noneMatch(result -> result.complianceLevel().isUnCompliant()),
-                false);
+                countCryptographicAssets(cbom));
+    }
+
+    private static int countCryptographicAssets(@Nonnull CBOM cbom) {
+        return Optional.ofNullable(cbom.cycloneDXbom().getComponents())
+                .orElseGet(List::of)
+                .size();
     }
 }
