@@ -33,11 +33,21 @@ public record ComplianceResult(
         @Nonnull List<ComplianceLevel> complianceLevels,
         int defaultComplianceLevel,
         boolean globalComplianceStatus,
-        boolean error) {
+        boolean error,
+        @Nonnull EvaluationStatus evaluationStatus,
+        @Nonnull ComplianceEvaluationSummary evaluationSummary) {
 
     @Nonnull
     public static ComplianceResult error(@Nonnull String complianceServiceName) {
         return new ComplianceResult(
-                complianceServiceName, null, List.of(), List.of(), 0, false, true);
+                complianceServiceName,
+                null,
+                List.of(),
+                List.of(),
+                0,
+                false,
+                true,
+                EvaluationStatus.ERROR,
+                ComplianceEvaluationSummary.empty());
     }
 }
