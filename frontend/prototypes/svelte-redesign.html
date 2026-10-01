@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en" class="cds-theme-zone-white">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CBOMkit — redesigned interface preview</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="https://1.www.s81c.com/common/carbon-for-ibm-dotcom/version/v2.58.0/plex.css" />
+    <link rel="stylesheet" href="https://1.www.s81c.com/common/carbon/web-components/tag/latest/themes.css" />
+    <link rel="stylesheet" href="./cbomkit-concept.css" />
+    <script type="module" src="https://1.www.s81c.com/common/carbon/web-components/version/v2.58.0/ui-shell.min.js"></script>
+    <script type="module" src="https://1.www.s81c.com/common/carbon/web-components/version/v2.58.0/button.min.js"></script>
+    <script type="module" src="https://1.www.s81c.com/common/carbon/web-components/version/v2.58.0/text-input.min.js"></script>
+    <script type="module" src="https://1.www.s81c.com/common/carbon/web-components/version/v2.58.0/tag.min.js"></script>
+  </head>
+  <body>
+    <cds-header aria-label="CBOMkit">
+      <cds-header-menu-button button-label-active="Close menu" button-label-inactive="Open menu"></cds-header-menu-button>
+      <cds-header-name href="#scan" prefix="CBOM">kit</cds-header-name>
+      <cds-header-nav menu-bar-label="CBOMkit navigation">
+        <cds-header-nav-item href="#scan" data-nav="scan">Scan</cds-header-nav-item>
+        <cds-header-nav-item href="#scans" data-nav="scans">Scans</cds-header-nav-item>
+        <cds-header-nav-item href="#inventory" data-nav="inventory">Inventory</cds-header-nav-item>
+      </cds-header-nav>
+      <div class="header-actions cds--header__global"><button id="theme-switch" class="theme-switch" aria-label="Switch color theme" title="Switch color theme">◐</button></div>
+    </cds-header>
+    <cds-side-nav is-not-persistent collapse-mode="responsive" aria-label="Mobile navigation">
+      <cds-side-nav-items>
+        <cds-side-nav-link href="#scan" data-nav="scan">Scan</cds-side-nav-link>
+        <cds-side-nav-link href="#scans" data-nav="scans">Scans</cds-side-nav-link>
+        <cds-side-nav-link href="#inventory" data-nav="inventory">Inventory</cds-side-nav-link>
+      </cds-side-nav-items>
+    </cds-side-nav>
+    <div class="shell-gap"></div>
+    <div class="preview-ribbon"><strong>DESIGN PREVIEW</strong><span>Sample records and local interactions · no backend requests</span></div>
+
+    <main id="view-scan" class="page scan-page" aria-labelledby="scan-heading">
+      <div class="scan-center">
+        <p class="eyebrow">New scan</p>
+        <h1 id="scan-heading">See the cryptography in your code.</h1>
+        <p class="lead">Enter a repository or package URL. CBOMkit will generate a Cryptography Bill of Materials and show the findings as they arrive.</p>
+        <section class="scan-box" aria-label="Start a scan">
+          <p class="scan-label">Repository or Package URL</p>
+          <div class="scan-row">
+            <cds-text-input id="scan-url" hide-label label="Repository or Package URL" size="lg" placeholder="https://github.com/owner/repository or pkg:github/owner/repository"></cds-text-input>
+            <cds-button id="start-scan" kind="primary" size="lg">Start scan <span slot="icon">↗</span></cds-button>
+          </div>
+          <div class="scan-helper"><span>Git URL</span><span class="bullet"></span><span>Package URL</span><span class="bullet"></span><span>Public or private repository</span></div>
+          <button id="advanced-trigger" class="advanced-trigger" aria-controls="advanced-content" aria-expanded="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="m5 2 6 6-6 6"/></svg> Advanced options</button>
+          <div id="advanced-content" class="advanced-content" hidden>
+            <cds-text-input id="scan-branch" label="Branch or revision" placeholder="main"></cds-text-input>
+            <cds-text-input id="scan-subfolder" label="Subfolder" placeholder="packages/service"></cds-text-input>
+            <cds-text-input id="scan-username" label="Username" helper-text="Optional for private repositories"></cds-text-input>
+            <cds-text-input id="scan-secret" type="password" label="Password or access token" helper-text="Used only for this scan"></cds-text-input>
+          </div>
+        </section>
+        <p class="scan-footer">Already have a CBOM? <a class="quiet-link" href="#inventory">Open Inventory to upload it →</a></p>
+      </div>
+    </main>
+
+    <main id="view-scans" class="page" aria-labelledby="scans-heading" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Scan activity</p><h1 id="scans-heading">Scans</h1><p class="lead">Every scan, newest first. Open a result to inspect its CBOM and compliance findings.</p></div><cds-button id="scans-new-button" kind="primary">New scan <span slot="icon">＋</span></cds-button></div>
+      <section class="data-surface" aria-label="Scan history">
+        <div class="toolbar"><div><div class="toolbar-title">Scan history</div><p class="toolbar-subtitle" id="scans-total">All scans · newest first</p></div></div>
+        <div class="table-scroll"><table><thead><tr><th>Repository / identifier</th><th>Started</th><th>Status</th><th>Assets</th><th>Commit</th><th></th></tr></thead><tbody id="scans-rows"></tbody></table></div>
+        <div class="table-footer"><span id="scans-range"></span><div class="pager"><cds-button id="scans-prev" kind="ghost" size="sm" aria-label="Previous scans page">←</cds-button><span id="scans-page-label" class="pager-label"></span><cds-button id="scans-next" kind="ghost" size="sm" aria-label="Next scans page">→</cds-button></div></div>
+      </section>
+    </main>
+
+    <main id="view-inventory" class="page" aria-labelledby="inventory-heading" hidden>
+      <div class="page-heading"><div><p class="eyebrow">CBOM library</p><h1 id="inventory-heading">Inventory</h1><p class="lead">Find an identifier, then browse its generated and uploaded CBOMs.</p></div><cds-button id="inventory-upload-top" kind="primary">Upload CBOM <span slot="icon">⇧</span></cds-button></div>
+      <div class="inventory-layout">
+        <section class="data-surface inventory-list" aria-label="Identifiers"><div class="toolbar"><div class="toolbar-title">Identifiers</div><p class="toolbar-subtitle" id="identifier-count">Projects and packages</p></div><div id="identifier-list" class="identifier-list"></div></section>
+        <section class="inventory-detail" aria-label="CBOMs for selected identifier">
+          <div class="identifier-head"><p class="eyebrow">Selected identifier</p><h2 id="selected-name">Keycloak</h2><div id="selected-identifier" class="mono"></div><div class="identifier-actions"><cds-button id="identifier-open-latest" kind="secondary" size="sm">Open latest CBOM</cds-button><cds-button id="identifier-upload" kind="tertiary" size="sm">Upload CBOM</cds-button></div></div>
+          <div class="data-surface"><div class="toolbar"><div><div class="toolbar-title">CBOM history</div><p class="toolbar-subtitle" id="cbom-count">Generated and uploaded CBOMs</p></div></div><div class="table-scroll"><table class="inventory-table"><thead><tr><th>CBOM</th><th>Created</th><th>Assets</th><th>Source</th><th></th></tr></thead><tbody id="cbom-rows"></tbody></table></div><label id="upload-zone" for="cbom-file" class="upload-zone" tabindex="0"><div><div aria-hidden="true" style="font-size:23px">⇧</div><strong>Add a CBOM to this identifier</strong><span>Drop a CycloneDX JSON file here or click to browse</span></div></label><input id="cbom-file" type="file" accept=".json,application/json" hidden /></div>
+        </section>
+      </div>
+    </main>
+
+    <main id="view-result" class="page" aria-labelledby="result-heading" hidden>
+      <div class="result-back"><cds-button id="result-back" kind="ghost" size="sm">← Back</cds-button></div>
+      <div class="result-head"><div><p class="eyebrow" id="result-eyebrow">Scan result</p><h1 id="result-heading">Keycloak</h1><p class="lead" id="result-meta">pkg:github/keycloak/keycloak@9f8d2e4 · main · 9f8d2e4</p><p id="result-upload-note" class="small muted" hidden>The uploaded file is held locally. The findings below illustrate the proposed results layout with sample data.</p></div><div class="result-actions"><cds-button id="result-upload" kind="secondary" size="sm">Upload revision</cds-button><cds-button id="result-download" kind="primary" size="sm">Download CBOM <span slot="icon">↓</span></cds-button></div></div>
+      <div class="summary-grid"><div class="summary-tile"><div class="summary-label">Cryptographic assets</div><div class="summary-value">128</div><p class="summary-note">Across 34 source files</p></div><div class="summary-tile"><div class="summary-label">Compliance</div><div class="summary-value" style="font-size:21px">Needs review</div><p class="summary-note">Quantum-safe policy</p></div><div class="summary-tile"><div class="summary-label">Lines scanned</div><div class="summary-value">42.8k</div><p class="summary-note">Source code analyzed</p></div><div class="summary-tile"><div class="summary-label">Scan duration</div><div class="summary-value">1m 24s</div><p class="summary-note">Total processing time</p></div></div>
+      <div class="result-two"><section class="chart-tile"><h2>Compliance breakdown</h2><p class="small muted">Policy results across assets</p><div class="meter"><span></span><span></span><span></span><span></span></div><div class="legend"><div class="legend-item"><i class="legend-dot" style="background:#da1e28"></i> Vulnerable <b>50</b></div><div class="legend-item"><i class="legend-dot" style="background:#198038"></i> Safe <b>42</b></div><div class="legend-item"><i class="legend-dot" style="background:#8d8d8d"></i> N/A <b>24</b></div><div class="legend-item"><i class="legend-dot" style="background:#a56eff"></i> Unknown <b>12</b></div></div></section><section class="chart-tile"><h2>Cryptographic primitives</h2><p class="small muted">Most common in this CBOM</p><div class="bars"><div class="bar-row"><span>Encryption</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><b>46</b></div><div class="bar-row"><span>Hashing</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><b>32</b></div><div class="bar-row"><span>Signature</span><div class="bar-track"><div class="bar-fill" style="width:41%"></div></div><b>23</b></div><div class="bar-row"><span>Key exchange</span><div class="bar-track"><div class="bar-fill" style="width:29%"></div></div><b>16</b></div></div></section></div>
+      <section class="data-surface"><div class="toolbar"><div><div class="toolbar-title">Cryptographic assets</div><p class="toolbar-subtitle">Select an asset to inspect its properties, code location, and dependencies.</p></div></div><div class="table-scroll"><table><thead><tr><th>Asset</th><th>Compliance</th><th>Type</th><th>Primitive</th><th>Location</th><th></th></tr></thead><tbody id="assets-rows"></tbody></table></div></section>
+      <p class="small muted" style="margin-top:18px">Compliance values and charts in this design preview use sample data.</p>
+    </main>
+
+    <div id="detail-scrim" class="detail-scrim" hidden></div><aside id="asset-detail" class="asset-detail" aria-label="Asset details" hidden><div class="detail-top"><span class="eyebrow" style="margin:0">Asset details</span><cds-button id="detail-close" kind="ghost" size="sm" aria-label="Close asset details">✕</cds-button></div><h2 id="asset-detail-name">RSA-2048</h2><p class="small muted" id="asset-detail-ref"></p><div class="detail-section" style="border:0;padding-top:8px"><cds-tag id="asset-detail-status" type="red">Quantum vulnerable</cds-tag></div><div class="detail-section"><h3>Properties</h3><dl class="detail-grid"><div><dt>Asset type</dt><dd id="asset-detail-type"></dd></div><div><dt>Primitive</dt><dd id="asset-detail-primitive"></dd></div><div><dt>BOM reference</dt><dd id="asset-detail-bomref" class="mono"></dd></div><div><dt>Source file</dt><dd id="asset-detail-file"></dd></div></dl></div><div class="detail-section"><h3>Code occurrence</h3><p id="asset-detail-location" class="small muted"></p><pre class="code-block">82  KeyPairGenerator generator =<br />83      KeyPairGenerator.getInstance(<br />84          "RSA");<br />85  generator.initialize(2048);</pre><cds-button id="open-code" kind="tertiary" size="sm">Open in repository ↗</cds-button></div><div class="detail-section"><h3>Dependencies</h3><p class="small muted">Used by TLS 1.3 configuration · Depends on SHA-256</p></div></aside>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <script src="./cbomkit-concept.js" defer></script>
+  </body>
+</html>
