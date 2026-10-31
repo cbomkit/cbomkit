@@ -21,6 +21,17 @@ in_whitelist(primitive, id, whitelist) := "quantum-safe" if {
 	primitive in ["unknown", "other"]
 } else := "quantum-vulnerable"
 
+name_matches_whitelist(name, whitelist) if {
+	some stem in whitelist
+	contains(lower(name), stem)
+}
+
+name_in_whitelist(primitive, name, whitelist) := "quantum-safe" if {
+	name_matches_whitelist(name, whitelist)
+} else := "unknown" if {
+	primitive in ["unknown", "other"]
+} else := "quantum-vulnerable"
+
 at_least(value, ref) := "quantum-safe" if {
 	value >= ref
 } else := "quantum-vulnerable"
@@ -46,7 +57,7 @@ quantum_safe.findings contains finding if {
 
 	finding := {
 		"rule": "asymmetric_quantum_safe",
-		"result": in_whitelist(
+		"result": name_in_whitelist(
 			component.cryptoProperties.algorithmProperties.primitive,
 			component.name,
 			qs_algorithms,
