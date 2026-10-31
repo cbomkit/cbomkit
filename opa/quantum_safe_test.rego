@@ -136,3 +136,72 @@ test_mlkem_is_quantum_safe if {
 	finding.rule == "asymmetric_quantum_safe"
 	finding.result == "quantum-safe"
 }
+
+# ---------------------------------------------------------------------------
+# Issue #380: parametrised post-quantum names must be quantum-safe.
+#
+# NIST and most scanners emit names like ML-KEM-768 and ML-DSA-65, not the
+# bare stem. The name rule used exact set membership against bare stems, so a
+# parametrised or differently cased name fell through to quantum-vulnerable.
+# The name rule now matches a whitelist stem as a case-insensitive substring,
+# the same way the internal compliance service does (lowerCaseName.contains).
+# ---------------------------------------------------------------------------
+pqc_component(ref, nm, prim) := {
+	"type": "cryptographic-asset",
+	"bom-ref": ref,
+	"name": nm,
+	"cryptoProperties": {
+		"assetType": "algorithm",
+		"algorithmProperties": {"primitive": prim},
+	},
+}
+
+test_mlkem_768_parametrised_is_quantum_safe if {
+	findings := quantum_safe.findings with input as {"components": [pqc_component("alg-mlkem-768", "ML-KEM-768", "kem")]}
+	some finding in findings
+	finding["bom-ref"] == "alg-mlkem-768"
+	finding.rule == "asymmetric_quantum_safe"
+	finding.result == "quantum-safe"
+}
+
+test_mldsa_65_is_quantum_safe if {
+	findings := quantum_safe.findings with input as {"components": [pqc_component("alg-mldsa-65", "ML-DSA-65", "signature")]}
+	some finding in findings
+	finding["bom-ref"] == "alg-mldsa-65"
+	finding.rule == "asymmetric_quantum_safe"
+	finding.result == "quantum-safe"
+}
+
+test_slhdsa_is_quantum_safe if {
+	findings := quantum_safe.findings with input as {"components": [pqc_component("alg-slhdsa", "SLH-DSA-SHAKE-256f", "signature")]}
+	some finding in findings
+	finding["bom-ref"] == "alg-slhdsa"
+	finding.rule == "asymmetric_quantum_safe"
+	finding.result == "quantum-safe"
+}
+
+test_falcon_is_quantum_safe if {
+	findings := quantum_safe.findings with input as {"components": [pqc_component("alg-falcon", "Falcon-512", "signature")]}
+	some finding in findings
+	finding["bom-ref"] == "alg-falcon"
+	finding.rule == "asymmetric_quantum_safe"
+	finding.result == "quantum-safe"
+}
+
+test_mlkem_lowercase_parametrised_is_quantum_safe if {
+	findings := quantum_safe.findings with input as {"components": [pqc_component("alg-mlkem-lc", "ml-kem-768", "kem")]}
+	some finding in findings
+	finding["bom-ref"] == "alg-mlkem-lc"
+	finding.rule == "asymmetric_quantum_safe"
+	finding.result == "quantum-safe"
+}
+
+# Regression: a classical asymmetric name must stay quantum-vulnerable.
+# Substring matching must not approve it.
+test_rsa_name_is_quantum_vulnerable if {
+	findings := quantum_safe.findings with input as {"components": [pqc_component("alg-rsa", "RSA-2048", "signature")]}
+	some finding in findings
+	finding["bom-ref"] == "alg-rsa"
+	finding.rule == "asymmetric_quantum_safe"
+	finding.result == "quantum-vulnerable"
+}
