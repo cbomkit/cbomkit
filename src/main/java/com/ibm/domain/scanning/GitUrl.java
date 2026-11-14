@@ -29,7 +29,7 @@ public record GitUrl(@Nonnull String value) implements IValueObject {
     // normalize value
     public GitUrl {
         value =
-                value.replaceAll(".git$", "")
+                value.replaceAll("\\.git$", "")
                         // .replaceAll("^http://", "")
                         .replaceAll("^scm:git:git://", "");
         if (!value.contains("://")) {
