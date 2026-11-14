@@ -25,7 +25,18 @@ export function createLocalComplianceReport(cbom) {
     try {
         const findings = [];
 
-        const components = cbom.components || [];
+        // Visit parents and nested components in document order.
+        const components = [];
+        const pending = [...(cbom.components || [])].reverse();
+        while (pending.length > 0) {
+            const component = pending.pop();
+            components.push(component);
+            if (Array.isArray(component.components)) {
+                for (let i = component.components.length - 1; i >= 0; i--) {
+                    pending.push(component.components[i]);
+                }
+            }
+        }
         components.forEach(component => {
             const bomRef = component["bom-ref"];
             if (!bomRef) {
