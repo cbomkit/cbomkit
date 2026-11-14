@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
@@ -52,9 +53,15 @@ public final class CommandBus implements ICommandBus {
     public void register(
             @Nonnull ICommandHandler commandHandler,
             @Nonnull Class<? extends ICommand> forCommand) {
-        this.handlers
-                .computeIfAbsent(forCommand, k -> new java.util.ArrayList<>())
-                .add(commandHandler);
+        this.handlers.compute(
+                forCommand,
+                (key, registeredHandlers) -> {
+                    if (registeredHandlers == null) {
+                        registeredHandlers = new CopyOnWriteArrayList<>();
+                    }
+                    registeredHandlers.add(commandHandler);
+                    return registeredHandlers;
+                });
     }
 
     @Override
@@ -62,9 +69,7 @@ public final class CommandBus implements ICommandBus {
             @Nonnull ICommandHandler commandHandler,
             @Nonnull List<Class<? extends ICommand>> forCommands) {
         for (Class<? extends ICommand> forCommand : forCommands) {
-            this.handlers
-                    .computeIfAbsent(forCommand, k -> new java.util.ArrayList<>())
-                    .add(commandHandler);
+            register(commandHandler, forCommand);
         }
     }
 
@@ -72,13 +77,12 @@ public final class CommandBus implements ICommandBus {
     public void unregister(
             @Nonnull ICommandHandler commandHandler,
             @Nonnull Class<? extends ICommand> forCommand) {
-        List<ICommandHandler> handlersForCommand = this.handlers.get(forCommand);
-        if (handlersForCommand != null) {
-            handlersForCommand.remove(commandHandler);
-            if (handlersForCommand.isEmpty()) {
-                this.handlers.remove(forCommand);
-            }
-        }
+        this.handlers.computeIfPresent(
+                forCommand,
+                (key, registeredHandlers) -> {
+                    registeredHandlers.remove(commandHandler);
+                    return registeredHandlers.isEmpty() ? null : registeredHandlers;
+                });
     }
 
     @Override
